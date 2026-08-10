@@ -1,0 +1,181 @@
+import 'package:flutter/material.dart';
+
+import '../../../../core/services/auth_service.dart';
+
+import '../widgets/profile_header.dart';
+import '../widgets/profile_stats.dart';
+import '../widgets/profile_tab_bar.dart';
+
+import '../tabs/about_tab.dart';
+import '../tabs/favorites_tab.dart';
+import '../tabs/likes_tab.dart';
+
+import '../../profile/upgrade/consumer_upgrade_screen.dart';
+import '../../../auth/screens/login_screen.dart';
+
+class ProfileScreen extends StatefulWidget {
+  const ProfileScreen({super.key});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  @override
+  void initState() {
+    super.initState();
+
+    // If the user is not logged in, open Login immediately.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!AuthService.isLoggedIn && mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const LoginScreen(returnToHome: true),
+          ),
+        );
+      }
+    });
+  }
+
+  // ==========================================
+  // LOGOUT
+  // ==========================================
+
+  void logout() {
+    AuthService.logout();
+
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => const LoginScreen(returnToHome: true)),
+      (route) => false,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final user = AuthService.currentUser;
+
+    // ==========================================
+    // NOT LOGGED IN
+    // ==========================================
+
+    if (!AuthService.isLoggedIn || user == null) {
+      // Don't show Guest Profile.
+      // Login is opened from initState().
+      return const Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(child: CircularProgressIndicator(color: Colors.white)),
+      );
+    }
+
+    // ==========================================
+    // LOGGED IN PROFILE
+    // ==========================================
+
+    return DefaultTabController(
+      length: 3,
+
+      child: Scaffold(
+        backgroundColor: Colors.black,
+
+        body: SafeArea(
+          child: NestedScrollView(
+            headerSliverBuilder: (context, innerBoxIsScrolled) {
+              return [
+                SliverToBoxAdapter(
+                  child: Column(
+                    children: [
+                      // ==================================
+                      // PROFILE HEADER
+                      // ==================================
+                      ProfileHeader(
+                        coverImage: user.coverImage,
+                        profileImage: user.profileImage,
+                        name: user.fullName,
+                        email: user.email,
+
+                        isLoggedIn: true,
+
+                        isConsumer: user.role == "consumer",
+
+                        onLogin: () {},
+
+                        // ==================================
+                        // UPGRADE
+                        // ==================================
+                        onUpgrade: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const ConsumerUpgradeScreen(),
+                            ),
+                          );
+                        },
+
+                        // ==================================
+                        // LOGOUT
+                        // ==================================
+                        onLogout: logout,
+                      ),
+
+                      const ProfileStats(),
+
+                      const SizedBox(height: 10),
+                    ],
+                  ),
+                ),
+
+                // ==================================
+                // PROFILE TABS
+                // ==================================
+                SliverPersistentHeader(
+                  pinned: true,
+
+                  delegate: _TabBarDelegate(const ProfileTabBar()),
+                ),
+              ];
+            },
+
+            // ==================================
+            // TAB CONTENT
+            // ==================================
+            body: const TabBarView(
+              children: [AboutTab(), FavoritesTab(), LikesTab()],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ==========================================
+// TAB BAR DELEGATE
+// ==========================================
+
+class _TabBarDelegate extends SliverPersistentHeaderDelegate {
+  final PreferredSizeWidget tabBar;
+
+  const _TabBarDelegate(this.tabBar);
+
+  @override
+  double get minExtent => tabBar.preferredSize.height;
+
+  @override
+  double get maxExtent => tabBar.preferredSize.height;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    return Container(color: Colors.black, child: tabBar);
+  }
+
+  @override
+  bool shouldRebuild(_TabBarDelegate oldDelegate) {
+    return false;
+  }
+}
