@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../auth/screens/login_screen.dart';
-
-import '../../../../core/services/user_session.dart';
 import '../../../../data/models/user.dart';
 
 import '../models/dummy_messages.dart';
@@ -17,10 +14,6 @@ class MessagesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!UserSession.isLoggedIn) {
-      return const LoginScreen();
-    }
-
     // ==========================================
     // OPEN DIRECT CHAT WITH SELECTED USER
     // ==========================================
@@ -30,13 +23,9 @@ class MessagesScreen extends StatelessWidget {
 
       final directChat = MessageModel(
         name: user.fullName,
-
         profile: user.profileImage,
-
         lastMessage: "Start a conversation",
-
         time: "",
-
         messages: [],
       );
 
@@ -45,12 +34,10 @@ class MessagesScreen extends StatelessWidget {
 
         appBar: AppBar(
           backgroundColor: const Color(0xff0B0B0B),
-
           elevation: 0,
 
           title: const Text(
             "Messages",
-
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
           ),
         ),
@@ -63,13 +50,11 @@ class MessagesScreen extends StatelessWidget {
 
           leading: CircleAvatar(
             radius: 28,
-
             backgroundImage: AssetImage(user.profileImage),
           ),
 
           title: Text(
             user.fullName,
-
             style: const TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.bold,
@@ -78,7 +63,6 @@ class MessagesScreen extends StatelessWidget {
 
           subtitle: const Text(
             "Start a conversation",
-
             style: TextStyle(color: Colors.white60),
           ),
 
@@ -91,7 +75,6 @@ class MessagesScreen extends StatelessWidget {
           onTap: () {
             Navigator.push(
               context,
-
               MaterialPageRoute(builder: (_) => ChatScreen(chat: directChat)),
             );
           },
@@ -108,12 +91,10 @@ class MessagesScreen extends StatelessWidget {
 
       appBar: AppBar(
         backgroundColor: const Color(0xff0B0B0B),
-
         elevation: 0,
 
         title: const Text(
           "Messages",
-
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
       ),
@@ -132,13 +113,11 @@ class MessagesScreen extends StatelessWidget {
 
             leading: CircleAvatar(
               radius: 28,
-
               backgroundImage: AssetImage(chat.profile),
             ),
 
             title: Text(
               chat.name,
-
               style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
@@ -147,22 +126,18 @@ class MessagesScreen extends StatelessWidget {
 
             subtitle: Text(
               chat.lastMessage,
-
               maxLines: 1,
-
               style: const TextStyle(color: Colors.white60),
             ),
 
             trailing: Text(
               chat.time,
-
               style: const TextStyle(color: Colors.white54),
             ),
 
             onTap: () {
               Navigator.push(
                 context,
-
                 MaterialPageRoute(builder: (_) => ChatScreen(chat: chat)),
               );
             },

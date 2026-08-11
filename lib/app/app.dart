@@ -23,6 +23,8 @@ class SuperPlatformApp extends StatelessWidget {
 
       routes: {"/login": (context) => const LoginScreen()},
 
+      // IMPORTANT:
+      // The app ALWAYS starts with Splash.
       home: const SplashScreen(),
     );
   }

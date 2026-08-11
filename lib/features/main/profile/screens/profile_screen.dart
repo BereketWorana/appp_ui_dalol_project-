@@ -21,23 +21,6 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  @override
-  void initState() {
-    super.initState();
-
-    // If the user is not logged in, open Login immediately.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!AuthService.isLoggedIn && mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => const LoginScreen(returnToHome: true),
-          ),
-        );
-      }
-    });
-  }
-
   // ==========================================
   // LOGOUT
   // ==========================================
@@ -59,13 +42,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
     // ==========================================
     // NOT LOGGED IN
     // ==========================================
+    //
+    // IMPORTANT:
+    // Do NOT navigate to Login here.
+    //
+    // ConsumerMainScreen handles authentication
+    // before allowing the user to enter this screen.
+    // ==========================================
 
     if (!AuthService.isLoggedIn || user == null) {
-      // Don't show Guest Profile.
-      // Login is opened from initState().
       return const Scaffold(
         backgroundColor: Colors.black,
-        body: Center(child: CircularProgressIndicator(color: Colors.white)),
+        body: Center(
+          child: Text(
+            "Please login to view your profile.",
+            style: TextStyle(color: Colors.white, fontSize: 16),
+          ),
+        ),
       );
     }
 

@@ -2,10 +2,17 @@ import 'dart:convert';
 
 import 'package:flutter/services.dart';
 
-import '../models/user.dart';
+import '../../data/models/user.dart';
 
 class UserService {
-  /// Returns all users from users.json
+  // ============================================================
+  // LOCAL USERS
+  // ============================================================
+
+  /// Returns users from the local JSON file.
+  ///
+  /// This can still be used by parts of the application
+  /// that have not yet been connected to the backend.
   static Future<List<User>> getUsers() async {
     final String jsonString = await rootBundle.loadString(
       'assets/data/users.json',
@@ -16,7 +23,14 @@ class UserService {
     return jsonData.map((user) => User.fromJson(user)).toList();
   }
 
-  /// Login using phone OR email
+  // ============================================================
+  // LOCAL LOGIN
+  // ============================================================
+
+  /// Temporary local login.
+  ///
+  /// This remains available until the Login task is connected
+  /// to POST /api/auth/login.
   static Future<User?> login(String username, String password) async {
     final users = await getUsers();
 
@@ -27,37 +41,49 @@ class UserService {
                 user.phone == username) &&
             user.password == password,
       );
-    } catch (e) {
+    } catch (_) {
       return null;
     }
   }
 
-  /// Get user by ID
+  // ============================================================
+  // GET USER BY ID
+  // ============================================================
+
   static Future<User?> getUserById(int id) async {
     final users = await getUsers();
 
     try {
       return users.firstWhere((user) => user.id == id);
-    } catch (e) {
+    } catch (_) {
       return null;
     }
   }
 
-  /// Get all consumers
+  // ============================================================
+  // CONSUMERS
+  // ============================================================
+
   static Future<List<User>> getConsumers() async {
     final users = await getUsers();
 
     return users.where((user) => user.role == "consumer").toList();
   }
 
-  /// Get all creators
+  // ============================================================
+  // CREATORS
+  // ============================================================
+
   static Future<List<User>> getCreators() async {
     final users = await getUsers();
 
     return users.where((user) => user.role == "creator").toList();
   }
 
-  /// Get all merchants
+  // ============================================================
+  // MERCHANTS
+  // ============================================================
+
   static Future<List<User>> getMerchants() async {
     final users = await getUsers();
 

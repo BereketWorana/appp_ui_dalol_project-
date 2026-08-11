@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/services/auth_service.dart';
-import '../../../data/services/user_service.dart';
 
 import 'choose_role_screen.dart';
 
@@ -10,10 +9,11 @@ import '../widgets/auth_button.dart';
 import '../widgets/social_login_button.dart';
 
 import '../../main/screens/main_screen.dart';
+import 'forgot_password_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   /// When true, pressing the Android back button from Login
-  /// will take the user to Home instead of closing the app.
+  /// will return the user to Home.
   final bool returnToHome;
 
   const LoginScreen({super.key, this.returnToHome = false});
@@ -23,80 +23,160 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final phoneController = TextEditingController();
+  // ============================================================
+  // CONTROLLERS
+  // ============================================================
+
+  final usernameController = TextEditingController();
   final passwordController = TextEditingController();
 
-  bool loading = false;
+  // ============================================================
+  // STATE
+  // ============================================================
 
-  // ==========================================
+  bool loading = false;
+  bool rememberMe = false;
+
+  // Inline error message
+  String? loginError;
+
+  // ============================================================
   // LOGIN
-  // ==========================================
+  // ============================================================
 
   Future<void> login() async {
-    if (phoneController.text.trim().isEmpty ||
-        passwordController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Please enter your phone/email and password"),
-        ),
-      );
+    final username = usernameController.text.trim();
+    final password = passwordController.text;
 
+    // Clear previous error.
+    setState(() {
+      loginError = null;
+    });
+
+    // ------------------------------------------------------------
+    // VALIDATION
+    // ------------------------------------------------------------
+
+    if (username.isEmpty) {
+      setState(() {
+        loginError = "Email or phone number is required.";
+      });
       return;
     }
+
+    if (password.isEmpty) {
+      setState(() {
+        loginError = "Password is required.";
+      });
+      return;
+    }
+
+    if (loading) {
+      return;
+    }
+
+    FocusScope.of(context).unfocus();
 
     setState(() {
       loading = true;
+      loginError = null;
     });
 
-    final user = await UserService.login(
-      phoneController.text.trim(),
-      passwordController.text.trim(),
-    );
+    try {
+      // ==========================================================
+      // LOGIN THROUGH AUTH SERVICE
+      // ==========================================================
 
-    if (!mounted) return;
-
-    setState(() {
-      loading = false;
-    });
-
-    if (user == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Invalid phone/email or password")),
+      final result = await AuthService.login(
+        phone: username,
+        password: password,
+        rememberMe: rememberMe,
       );
 
-      return;
+      if (!mounted) return;
+
+      // ==========================================================
+      // LOGIN FAILED
+      // ==========================================================
+
+      if (result["success"] != true) {
+        setState(() {
+          loading = false;
+          loginError =
+              result["message"]?.toString() ??
+              "Invalid email/phone or password.";
+        });
+
+        return;
+      }
+
+      // ==========================================================
+      // LOGIN SUCCESSFUL
+      // ==========================================================
+
+      setState(() {
+        loading = false;
+        loginError = null;
+      });
+
+      if (!mounted) return;
+
+      // ==========================================================
+      // GO TO HOME FEED
+      // ==========================================================
+
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const ConsumerMainScreen()),
+        (route) => false,
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        loading = false;
+        loginError = "Unable to connect to the server. Please try again.";
+      });
     }
+  }
 
-    // ==========================================
-    // SAVE LOGGED-IN USER
-    // ==========================================
+  // ============================================================
+  // SOCIAL LOGIN
+  // ============================================================
 
-    AuthService.login(user);
+  void socialLogin(String provider) {
+    setState(() {
+      loginError = "$provider login is not implemented yet.";
+    });
+  }
 
-    // ==========================================
-    // ALL USERS GO TO HOME
-    // ==========================================
+  // ============================================================
+  // FORGOT PASSWORD
+  // ============================================================
 
-    Navigator.pushAndRemoveUntil(
+  void forgotPassword() {
+    Navigator.push(
       context,
+      MaterialPageRoute(builder: (_) => const ForgotPasswordScreen()),
+    );
+  }
+
+  // ============================================================
+  // CONTINUE AS GUEST
+  // ============================================================
+
+  void continueAsGuest() {
+    if (!mounted) return;
+
+    Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const ConsumerMainScreen()),
       (route) => false,
     );
   }
 
-  // ==========================================
-  // SOCIAL LOGIN
-  // ==========================================
-
-  void socialLogin(String provider) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text("$provider login coming soon")));
-  }
-
-  // ==========================================
-  // REGISTER
-  // ==========================================
+  // ============================================================
+  // OPEN REGISTRATION
+  // ============================================================
 
   void openRegistration() {
     Navigator.push(
@@ -105,21 +185,22 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  // ==========================================
+  // ============================================================
   // GO HOME
-  // ==========================================
+  // ============================================================
 
   void goHome() {
-    Navigator.pushAndRemoveUntil(
-      context,
+    if (!mounted) return;
+
+    Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const ConsumerMainScreen()),
       (route) => false,
     );
   }
 
-  // ==========================================
+  // ============================================================
   // BUILD
-  // ==========================================
+  // ============================================================
 
   @override
   Widget build(BuildContext context) {
@@ -134,10 +215,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
       child: Scaffold(
         backgroundColor: Colors.black,
-
-        // Important:
-        // Allows the screen to resize properly
-        // when the keyboard opens.
         resizeToAvoidBottomInset: true,
 
         body: SafeArea(
@@ -159,9 +236,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       children: [
                         const SizedBox(height: 30),
 
-                        // ==================================
+                        // ==================================================
                         // LOGO
-                        // ==================================
+                        // ==================================================
                         Container(
                           width: 62,
                           height: 62,
@@ -180,11 +257,11 @@ class _LoginScreenState extends State<LoginScreen> {
 
                         const SizedBox(height: 22),
 
-                        // ==================================
+                        // ==================================================
                         // TITLE
-                        // ==================================
+                        // ==================================================
                         const Text(
-                          "Welcome",
+                          "Welcome Back",
 
                           style: TextStyle(
                             color: Colors.white,
@@ -203,20 +280,20 @@ class _LoginScreenState extends State<LoginScreen> {
 
                         const SizedBox(height: 28),
 
-                        // ==================================
-                        // PHONE / EMAIL
-                        // ==================================
+                        // ==================================================
+                        // EMAIL / PHONE
+                        // ==================================================
                         AuthTextField(
                           hint: "Phone number or Email",
                           icon: Icons.phone_android,
-                          controller: phoneController,
+                          controller: usernameController,
                         ),
 
                         const SizedBox(height: 14),
 
-                        // ==================================
+                        // ==================================================
                         // PASSWORD
-                        // ==================================
+                        // ==================================================
                         AuthTextField(
                           hint: "Password",
                           icon: Icons.lock_outline,
@@ -224,17 +301,121 @@ class _LoginScreenState extends State<LoginScreen> {
                           obscure: true,
                         ),
 
-                        const SizedBox(height: 22),
+                        const SizedBox(height: 10),
 
-                        // ==================================
+                        // ==================================================
+                        // REMEMBER ME / FORGOT PASSWORD
+                        // ==================================================
+                        Row(
+                          children: [
+                            Checkbox(
+                              value: rememberMe,
+
+                              activeColor: Colors.white,
+                              checkColor: Colors.black,
+
+                              side: const BorderSide(color: Colors.white54),
+
+                              onChanged: loading
+                                  ? null
+                                  : (value) {
+                                      setState(() {
+                                        rememberMe = value ?? false;
+                                      });
+                                    },
+                            ),
+
+                            const Text(
+                              "Remember Me",
+
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 13,
+                              ),
+                            ),
+
+                            const Spacer(),
+
+                            TextButton(
+                              onPressed: loading ? null : forgotPassword,
+
+                              child: const Text(
+                                "Forgot Password?",
+
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        // ==================================================
+                        // INLINE ERROR
+                        // ==================================================
+                        if (loginError != null) ...[
+                          const SizedBox(height: 2),
+
+                          Container(
+                            width: double.infinity,
+
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 11,
+                            ),
+
+                            decoration: BoxDecoration(
+                              color: Colors.red.withValues(alpha: 0.08),
+
+                              borderRadius: BorderRadius.circular(12),
+
+                              border: Border.all(
+                                color: Colors.red.withValues(alpha: 0.25),
+                              ),
+                            ),
+
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+
+                              children: [
+                                const Padding(
+                                  padding: EdgeInsets.only(top: 1),
+                                  child: Icon(
+                                    Icons.error_outline,
+                                    color: Colors.redAccent,
+                                    size: 18,
+                                  ),
+                                ),
+
+                                const SizedBox(width: 9),
+
+                                Expanded(
+                                  child: Text(
+                                    loginError!,
+
+                                    style: const TextStyle(
+                                      color: Colors.redAccent,
+                                      fontSize: 13,
+                                      height: 1.3,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+
+                        const SizedBox(height: 18),
+
+                        // ==================================================
                         // LOGIN BUTTON
-                        // ==================================
+                        // ==================================================
                         loading
                             ? const Center(
                                 child: SizedBox(
                                   height: 25,
                                   width: 25,
-
                                   child: CircularProgressIndicator(
                                     color: Colors.white,
                                     strokeWidth: 2.5,
@@ -250,18 +431,16 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ),
                               ),
 
-                        const SizedBox(height: 18),
+                        const SizedBox(height: 20),
 
-                        // ==================================
+                        // ==================================================
                         // OR
-                        // ==================================
+                        // ==================================================
                         Row(
-                          children: [
-                            const Expanded(
-                              child: Divider(color: Colors.white24),
-                            ),
+                          children: const [
+                            Expanded(child: Divider(color: Colors.white24)),
 
-                            const Padding(
+                            Padding(
                               padding: EdgeInsets.symmetric(horizontal: 12),
 
                               child: Text(
@@ -274,50 +453,79 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                             ),
 
-                            const Expanded(
-                              child: Divider(color: Colors.white24),
-                            ),
+                            Expanded(child: Divider(color: Colors.white24)),
                           ],
                         ),
 
                         const SizedBox(height: 18),
 
-                        // ==================================
+                        // ==================================================
                         // GOOGLE
-                        // ==================================
+                        // ==================================================
                         SocialLoginButton(
                           text: "Continue with Google",
+
                           image: "assets/logo/google.png",
 
-                          onPressed: () {
-                            socialLogin("Google");
-                          },
+                          onPressed: loading
+                              ? null
+                              : () {
+                                  socialLogin("Google");
+                                },
                         ),
 
                         const SizedBox(height: 12),
 
-                        // ==================================
+                        // ==================================================
                         // FACEBOOK
-                        // ==================================
+                        // ==================================================
                         SocialLoginButton(
                           text: "Continue with Facebook",
+
                           image: "assets/logo/facebook.png",
 
-                          onPressed: () {
-                            socialLogin("Facebook");
-                          },
+                          onPressed: loading
+                              ? null
+                              : () {
+                                  socialLogin("Facebook");
+                                },
                         ),
 
-                        // Instead of Spacer(), use flexible
-                        // empty space only when there is room.
+                        const SizedBox(height: 12),
+
+                        // ==================================================
+                        // CONTINUE AS GUEST
+                        // ==================================================
+                        SizedBox(
+                          width: double.infinity,
+                          height: 50,
+                          child: OutlinedButton(
+                            onPressed: loading ? null : continueAsGuest,
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(color: Colors.white24),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(18),
+                              ),
+                            ),
+                            child: const Text(
+                              "Continue as Guest",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+
                         const Spacer(),
 
-                        // ==================================
+                        // ==================================================
                         // REGISTER
-                        // ==================================
+                        // ==================================================
                         Center(
                           child: TextButton(
-                            onPressed: openRegistration,
+                            onPressed: loading ? null : openRegistration,
 
                             child: const Text(
                               "Don't have an account? Register",
@@ -343,13 +551,13 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  // ==========================================
+  // ============================================================
   // DISPOSE
-  // ==========================================
+  // ============================================================
 
   @override
   void dispose() {
-    phoneController.dispose();
+    usernameController.dispose();
     passwordController.dispose();
 
     super.dispose();

@@ -21,9 +21,34 @@ class ConsumerMainScreen extends StatefulWidget {
 class _ConsumerMainScreenState extends State<ConsumerMainScreen> {
   int currentIndex = 0;
 
-  // ==========================================
+  // ============================================================
+  // SCREENS
+  // ============================================================
+  //
+  // IMPORTANT:
+  // These are created once and kept alive using IndexedStack.
+  // This prevents Home videos from being destroyed/recreated
+  // every time the user changes the bottom navigation.
+  // ============================================================
+
+  late final List<Widget> screens;
+
+  @override
+  void initState() {
+    super.initState();
+
+    screens = const [
+      HomeScreen(),
+      ExploreScreen(),
+      SizedBox(),
+      MessagesScreen(),
+      ProfileScreen(),
+    ];
+  }
+
+  // ============================================================
   // OPEN LOGIN
-  // ==========================================
+  // ============================================================
 
   void openLogin() {
     Navigator.push(
@@ -32,12 +57,15 @@ class _ConsumerMainScreenState extends State<ConsumerMainScreen> {
     );
   }
 
-  // ==========================================
+  // ============================================================
   // CREATE / PLUS BUTTON
-  // ==========================================
+  // ============================================================
 
   void handleCreateButton() {
-    // User is not logged in
+    // ----------------------------------------------------------
+    // NOT LOGGED IN
+    // ----------------------------------------------------------
+
     if (!AuthService.isLoggedIn) {
       openLogin();
       return;
@@ -50,9 +78,9 @@ class _ConsumerMainScreenState extends State<ConsumerMainScreen> {
       return;
     }
 
-    // ==========================================
+    // ----------------------------------------------------------
     // CREATOR
-    // ==========================================
+    // ----------------------------------------------------------
 
     if (user.role == "creator") {
       Navigator.push(
@@ -63,9 +91,9 @@ class _ConsumerMainScreenState extends State<ConsumerMainScreen> {
       return;
     }
 
-    // ==========================================
+    // ----------------------------------------------------------
     // MERCHANT
-    // ==========================================
+    // ----------------------------------------------------------
 
     if (user.role == "merchant") {
       Navigator.push(
@@ -76,26 +104,80 @@ class _ConsumerMainScreenState extends State<ConsumerMainScreen> {
       return;
     }
 
-    // ==========================================
-    // NORMAL CONSUMER
-    // ==========================================
+    // ----------------------------------------------------------
+    // CONSUMER
+    // ----------------------------------------------------------
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("You need a creator or merchant account to upload."),
+      ),
+    );
   }
+
+  // ============================================================
+  // NAVIGATION
+  // ============================================================
+
+  void changeTab(int index) {
+    // ----------------------------------------------------------
+    // CREATE
+    // ----------------------------------------------------------
+
+    if (index == 2) {
+      handleCreateButton();
+      return;
+    }
+
+    // ----------------------------------------------------------
+    // MESSAGES
+    // ----------------------------------------------------------
+
+    if (index == 3 && !AuthService.isLoggedIn) {
+      openLogin();
+      return;
+    }
+
+    // ----------------------------------------------------------
+    // PROFILE
+    // ----------------------------------------------------------
+
+    if (index == 4 && !AuthService.isLoggedIn) {
+      openLogin();
+      return;
+    }
+
+    // ----------------------------------------------------------
+    // CHANGE TAB
+    // ----------------------------------------------------------
+
+    if (currentIndex == index) {
+      return;
+    }
+
+    setState(() {
+      currentIndex = index;
+    });
+  }
+
+  // ============================================================
+  // BUILD
+  // ============================================================
 
   @override
   Widget build(BuildContext context) {
-    final List<Widget> screens = [
-      const HomeScreen(),
-      const ExploreScreen(),
-      const SizedBox(),
-      const MessagesScreen(),
-      const ProfileScreen(),
-    ];
-
     return Scaffold(
       backgroundColor: Colors.black,
 
-      body: screens[currentIndex],
+      // ========================================================
+      // IMPORTANT:
+      // IndexedStack keeps all screens alive.
+      // ========================================================
+      body: IndexedStack(index: currentIndex, children: screens),
 
+      // ========================================================
+      // BOTTOM NAVIGATION
+      // ========================================================
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: currentIndex,
 
@@ -107,56 +189,32 @@ class _ConsumerMainScreenState extends State<ConsumerMainScreen> {
 
         type: BottomNavigationBarType.fixed,
 
-        onTap: (index) {
-          // ==================================
-          // CREATE / PLUS BUTTON
-          // ==================================
+        elevation: 0,
 
-          if (index == 2) {
-            handleCreateButton();
-            return;
-          }
-
-          // ==================================
-          // MESSAGES
-          // ==================================
-
-          if (index == 3 && !AuthService.isLoggedIn) {
-            openLogin();
-            return;
-          }
-
-          // ==================================
-          // CHANGE SCREEN
-          // ==================================
-
-          setState(() {
-            currentIndex = index;
-          });
-        },
+        onTap: changeTab,
 
         items: [
-          // ==================================
+          // ====================================================
           // HOME
-          // ==================================
+          // ====================================================
           const BottomNavigationBarItem(
             icon: Icon(Icons.home_outlined),
             activeIcon: Icon(Icons.home),
             label: "Home",
           ),
 
-          // ==================================
+          // ====================================================
           // EXPLORE
-          // ==================================
+          // ====================================================
           const BottomNavigationBarItem(
             icon: Icon(Icons.search_outlined),
             activeIcon: Icon(Icons.search),
             label: "Explore",
           ),
 
-          // ==================================
+          // ====================================================
           // CREATE
-          // ==================================
+          // ====================================================
           BottomNavigationBarItem(
             label: "",
 
@@ -173,18 +231,18 @@ class _ConsumerMainScreenState extends State<ConsumerMainScreen> {
             ),
           ),
 
-          // ==================================
+          // ====================================================
           // MESSAGES
-          // ==================================
+          // ====================================================
           const BottomNavigationBarItem(
             icon: Icon(Icons.message_outlined),
             activeIcon: Icon(Icons.message),
             label: "Messages",
           ),
 
-          // ==================================
+          // ====================================================
           // PROFILE
-          // ==================================
+          // ====================================================
           const BottomNavigationBarItem(
             icon: Icon(Icons.person_outline),
             activeIcon: Icon(Icons.person),
