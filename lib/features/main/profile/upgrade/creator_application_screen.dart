@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/services/auth_service.dart';
-import '../../screens/main_screen.dart';
+import 'creator_pending_screen.dart';
+import '../../../../core/services/upgrade_service.dart';
 
 class CreatorApplicationScreen extends StatefulWidget {
   const CreatorApplicationScreen({super.key});
@@ -12,382 +12,366 @@ class CreatorApplicationScreen extends StatefulWidget {
 }
 
 class _CreatorApplicationScreenState extends State<CreatorApplicationScreen> {
-  final _formKey = GlobalKey<FormState>();
+  bool submitting = false;
 
-  int currentStep = 0;
+  String? errorMessage;
 
-  final displayNameController = TextEditingController();
   final bioController = TextEditingController();
 
-  final instagramController = TextEditingController();
-  final facebookController = TextEditingController();
-  final youtubeController = TextEditingController();
-  final telegramController = TextEditingController();
-  final tiktokController = TextEditingController();
-  final websiteController = TextEditingController();
+  final phoneController = TextEditingController();
 
-  final sampleVideoController = TextEditingController();
+  String category = "Travel";
 
-  String experience = "Beginner";
+  // ============================================================
+  // SUBMIT
+  // ============================================================
 
-  final List<String> categories = [
-    "Travel",
-    "Hotels",
-    "Food",
-    "Lifestyle",
-    "Technology",
-    "Education",
-    "Entertainment",
-    "Photography",
-    "Sports",
-  ];
+  Future<void> submitApplication() async {
+    if (submitting) return;
 
-  final List<String> selectedCategories = [];
+    final bio = bioController.text.trim();
+    final phone = phoneController.text.trim();
+
+    if (bio.isEmpty) {
+      showError("Please enter your creator bio.");
+      return;
+    }
+
+    if (phone.isEmpty) {
+      showError("Please enter your phone number.");
+      return;
+    }
+
+    setState(() {
+      submitting = true;
+      errorMessage = null;
+    });
+
+    final result = await UpgradeService.registerCreator(
+      bio: bio,
+      category: category,
+      phone: phone,
+    );
+
+    if (!mounted) return;
+
+    if (result["success"] != true) {
+      setState(() {
+        submitting = false;
+
+        errorMessage =
+            result["message"]?.toString() ?? "Unable to submit application.";
+      });
+
+      return;
+    }
+
+    setState(() {
+      submitting = false;
+    });
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const CreatorPendingScreen()),
+    );
+  }
+
+  // ============================================================
+  // ERROR
+  // ============================================================
+
+  void showError(String message) {
+    setState(() {
+      errorMessage = message;
+    });
+  }
+
+  // ============================================================
+  // BUILD
+  // ============================================================
 
   @override
   Widget build(BuildContext context) {
-    final user = AuthService.currentUser!;
-
     return Scaffold(
       backgroundColor: Colors.black,
+
       appBar: AppBar(
         backgroundColor: Colors.black,
-        title: const Text("Become a Creator"),
+        elevation: 0,
+
+        automaticallyImplyLeading: !submitting,
+
+        title: const Text(
+          "Creator Application",
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+
         centerTitle: true,
       ),
 
-      body: Form(
-        key: _formKey,
-        child: Stepper(
-          currentStep: currentStep,
-          type: StepperType.vertical,
-          onStepContinue: () {
-            if (currentStep < 3) {
-              setState(() {
-                currentStep++;
-              });
-            }
-          },
-          onStepCancel: () {
-            if (currentStep > 0) {
-              setState(() {
-                currentStep--;
-              });
-            }
-          },
-          controlsBuilder: (context, details) {
-            return Row(
-              children: [
-                if (currentStep != 3)
-                  ElevatedButton(
-                    onPressed: details.onStepContinue,
-                    child: const Text("Next"),
-                  ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(22),
 
-                const SizedBox(width: 10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
 
-                if (currentStep != 0 && currentStep != 3)
-                  OutlinedButton(
-                    onPressed: details.onStepCancel,
-                    child: const Text("Back"),
-                  ),
-              ],
-            );
-          },
-          steps: [
-            Step(
-              isActive: currentStep >= 0,
-              title: const Text("Personal Information"),
-              content: Column(
-                children: [
-                  TextFormField(
-                    initialValue: user.fullName,
-                    readOnly: true,
-                    decoration: const InputDecoration(labelText: "Full Name"),
-                  ),
-                  const SizedBox(height: 15),
-                  TextFormField(
-                    initialValue: user.email,
-                    readOnly: true,
-                    decoration: const InputDecoration(labelText: "Email"),
-                  ),
-                  const SizedBox(height: 15),
-                  TextFormField(
-                    initialValue: user.phone,
-                    readOnly: true,
-                    decoration: const InputDecoration(labelText: "Phone"),
-                  ),
-                ],
+            children: [
+              const Text(
+                "Become a Creator",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-            ),
 
-            Step(
-              isActive: currentStep >= 1,
-              title: const Text("Creator Profile"),
-              content: Column(
-                children: [
-                  TextFormField(
-                    controller: displayNameController,
-                    decoration: const InputDecoration(
-                      labelText: "Display Name",
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return "Display name is required";
-                      }
-                      return null;
-                    },
-                  ),
+              const SizedBox(height: 8),
 
-                  const SizedBox(height: 15),
-
-                  TextFormField(
-                    controller: bioController,
-                    maxLines: 4,
-                    decoration: const InputDecoration(labelText: "Bio"),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  const Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      "Content Categories",
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ),
-
-                  const SizedBox(height: 10),
-
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: categories.map((category) {
-                      final selected = selectedCategories.contains(category);
-
-                      return FilterChip(
-                        label: Text(category),
-                        selected: selected,
-                        onSelected: (value) {
-                          setState(() {
-                            if (value) {
-                              selectedCategories.add(category);
-                            } else {
-                              selectedCategories.remove(category);
-                            }
-                          });
-                        },
-                      );
-                    }).toList(),
-                  ),
-                ],
+              const Text(
+                "Tell us about yourself and your content. Your application will be reviewed by our team.",
+                style: TextStyle(
+                  color: Colors.white60,
+                  fontSize: 14,
+                  height: 1.5,
+                ),
               ),
-            ),
-            Step(
-              isActive: currentStep >= 2,
-              title: const Text("Social Media"),
-              content: Column(
-                children: [
-                  TextFormField(
-                    controller: instagramController,
-                    decoration: const InputDecoration(
-                      labelText: "Instagram",
-                      prefixIcon: Icon(Icons.camera_alt_outlined),
-                    ),
-                  ),
 
-                  const SizedBox(height: 12),
+              const SizedBox(height: 25),
 
-                  TextFormField(
-                    controller: tiktokController,
-                    decoration: const InputDecoration(
-                      labelText: "TikTok",
-                      prefixIcon: Icon(Icons.music_note),
-                    ),
-                  ),
+              if (errorMessage != null) errorBox(),
 
-                  const SizedBox(height: 12),
+              const SizedBox(height: 10),
 
-                  TextFormField(
-                    controller: facebookController,
-                    decoration: const InputDecoration(
-                      labelText: "Facebook",
-                      prefixIcon: Icon(Icons.facebook),
-                    ),
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  TextFormField(
-                    controller: youtubeController,
-                    decoration: const InputDecoration(
-                      labelText: "YouTube",
-                      prefixIcon: Icon(Icons.play_circle_outline),
-                    ),
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  TextFormField(
-                    controller: telegramController,
-                    decoration: const InputDecoration(
-                      labelText: "Telegram",
-                      prefixIcon: Icon(Icons.send_outlined),
-                    ),
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  TextFormField(
-                    controller: websiteController,
-                    decoration: const InputDecoration(
-                      labelText: "Website (Optional)",
-                      prefixIcon: Icon(Icons.language),
-                    ),
-                  ),
-                ],
+              // ==================================================
+              // CATEGORY
+              // ==================================================
+              const Text(
+                "Content Category",
+                style: TextStyle(color: Colors.white70, fontSize: 14),
               ),
-            ),
 
-            Step(
-              isActive: currentStep >= 3,
-              title: const Text("Review & Submit"),
-              content: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    "Experience",
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
+              const SizedBox(height: 8),
 
-                  RadioListTile<String>(
-                    value: "Beginner",
-                    groupValue: experience,
-                    onChanged: (value) {
-                      setState(() {
-                        experience = value!;
-                      });
-                    },
-                    title: const Text("Beginner"),
-                  ),
+              categoryDropdown(),
 
-                  RadioListTile<String>(
-                    value: "Intermediate",
-                    groupValue: experience,
-                    onChanged: (value) {
-                      setState(() {
-                        experience = value!;
-                      });
-                    },
-                    title: const Text("Intermediate"),
-                  ),
+              const SizedBox(height: 18),
 
-                  RadioListTile<String>(
-                    value: "Professional",
-                    groupValue: experience,
-                    onChanged: (value) {
-                      setState(() {
-                        experience = value!;
-                      });
-                    },
-                    title: const Text("Professional"),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  TextFormField(
-                    controller: sampleVideoController,
-                    decoration: const InputDecoration(
-                      labelText: "Sample Video Link",
-                      hintText: "https://youtube.com/...",
-                    ),
-                  ),
-
-                  const SizedBox(height: 25),
-
-                  const Text(
-                    "By submitting this application, you agree to follow the Creator Community Guidelines and Terms of Service.",
-                    style: TextStyle(color: Colors.grey, height: 1.5),
-                  ),
-
-                  const SizedBox(height: 25),
-
-                  SizedBox(
-                    width: double.infinity,
-                    height: 52,
-                    child: ElevatedButton.icon(
-                      icon: const Icon(Icons.check_circle),
-                      label: const Text("Submit Application"),
-                      onPressed: () async {
-                        if (!_formKey.currentState!.validate()) {
-                          return;
-                        }
-
-                        await showDialog(
-                          context: context,
-                          barrierDismissible: false,
-                          builder: (_) {
-                            return AlertDialog(
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              title: const Row(
-                                children: [
-                                  Icon(Icons.verified, color: Colors.green),
-                                  SizedBox(width: 10),
-                                  Text("Application Submitted"),
-                                ],
-                              ),
-                              content: const Text(
-                                "Thank you!\n\n"
-                                "Your creator application has been submitted successfully.\n\n"
-                                "Our team will review it and notify you once it has been approved.",
-                              ),
-                              actions: [
-                                FilledButton(
-                                  onPressed: () {
-                                    Navigator.pop(context);
-
-                                    Navigator.pushAndRemoveUntil(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) =>
-                                            const ConsumerMainScreen(),
-                                      ),
-                                      (route) => false,
-                                    );
-                                  },
-                                  child: const Text("OK"),
-                                ),
-                              ],
-                            );
-                          },
-                        );
-                      },
-                    ),
-                  ),
-                ],
+              // ==================================================
+              // PHONE
+              // ==================================================
+              field(
+                "Phone number",
+                Icons.phone,
+                phoneController,
+                keyboardType: TextInputType.phone,
               ),
-            ),
-          ],
+
+              const SizedBox(height: 18),
+
+              // ==================================================
+              // BIO
+              // ==================================================
+              field(
+                "Tell us about your content",
+                Icons.person_outline,
+                bioController,
+                maxLines: 6,
+              ),
+
+              const SizedBox(height: 30),
+
+              // ==================================================
+              // SUBMIT
+              // ==================================================
+              SizedBox(
+                width: double.infinity,
+                height: 55,
+
+                child: ElevatedButton(
+                  onPressed: submitting ? null : submitApplication,
+
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: Colors.black,
+
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                  ),
+
+                  child: submitting
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            color: Colors.black,
+                            strokeWidth: 2.5,
+                          ),
+                        )
+                      : const Text(
+                          "Submit Application",
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
+  // ============================================================
+  // CATEGORY DROPDOWN
+  // ============================================================
+
+  Widget categoryDropdown() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 15),
+
+      decoration: BoxDecoration(
+        color: Colors.white12,
+        borderRadius: BorderRadius.circular(18),
+      ),
+
+      child: DropdownButton<String>(
+        value: category,
+
+        dropdownColor: Colors.black,
+
+        underline: const SizedBox(),
+
+        isExpanded: true,
+
+        style: const TextStyle(color: Colors.white),
+
+        items:
+            [
+                  "Travel",
+                  "Hotels",
+                  "Food",
+                  "Lifestyle",
+                  "Photography",
+                  "Entertainment",
+                  "Other",
+                ]
+                .map(
+                  (value) => DropdownMenuItem(value: value, child: Text(value)),
+                )
+                .toList(),
+
+        onChanged: submitting
+            ? null
+            : (value) {
+                if (value == null) return;
+
+                setState(() {
+                  category = value;
+                });
+              },
+      ),
+    );
+  }
+
+  // ============================================================
+  // FIELD
+  // ============================================================
+
+  Widget field(
+    String hint,
+    IconData icon,
+    TextEditingController controller, {
+    TextInputType? keyboardType,
+    int maxLines = 1,
+  }) {
+    return TextField(
+      controller: controller,
+
+      enabled: !submitting,
+
+      keyboardType: keyboardType,
+
+      maxLines: maxLines,
+
+      style: const TextStyle(color: Colors.white),
+
+      decoration: InputDecoration(
+        hintText: hint,
+
+        hintStyle: const TextStyle(color: Colors.white54),
+
+        prefixIcon: Padding(
+          padding: const EdgeInsets.only(bottom: 0),
+          child: Icon(icon, color: Colors.white70),
+        ),
+
+        filled: true,
+
+        fillColor: Colors.white12,
+
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(18),
+          borderSide: BorderSide.none,
+        ),
+
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 17,
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // ERROR
+  // ============================================================
+
+  Widget errorBox() {
+    return Container(
+      width: double.infinity,
+
+      padding: const EdgeInsets.all(12),
+
+      decoration: BoxDecoration(
+        color: Colors.redAccent.withValues(alpha: .1),
+
+        borderRadius: BorderRadius.circular(14),
+
+        border: Border.all(color: Colors.redAccent.withValues(alpha: .35)),
+      ),
+
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+
+        children: [
+          const Icon(Icons.error_outline, color: Colors.redAccent, size: 20),
+
+          const SizedBox(width: 8),
+
+          Expanded(
+            child: Text(
+              errorMessage!,
+              style: const TextStyle(
+                color: Colors.redAccent,
+                fontSize: 13,
+                height: 1.3,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // DISPOSE
+  // ============================================================
+
   @override
   void dispose() {
-    displayNameController.dispose();
     bioController.dispose();
-
-    instagramController.dispose();
-    facebookController.dispose();
-    youtubeController.dispose();
-    telegramController.dispose();
-    tiktokController.dispose();
-    websiteController.dispose();
-
-    sampleVideoController.dispose();
+    phoneController.dispose();
 
     super.dispose();
   }

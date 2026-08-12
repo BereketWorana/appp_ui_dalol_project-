@@ -3,10 +3,13 @@ import 'package:flutter/material.dart';
 import '../../../core/services/auth_service.dart';
 
 import '../../main/screens/main_screen.dart';
+import '../../main/profile/upgrade/creator_application_screen.dart';
+import '../../main/profile/upgrade/merchant_application_screen.dart';
 
 import '../widgets/auth_text_field.dart';
 import '../widgets/auth_button.dart';
 import '../widgets/social_login_button.dart';
+
 import 'login_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -36,13 +39,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool registering = false;
 
   bool passwordVisible = false;
-
   bool confirmPasswordVisible = false;
 
   bool termsAccepted = false;
 
   // ============================================================
-  // ERROR STATE
+  // ERRORS
   // ============================================================
 
   String? nameError;
@@ -53,22 +55,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   String? termsError;
 
   String? generalError;
-
-  // ============================================================
-  // CLEAR ERRORS
-  // ============================================================
-
-  void clearErrors() {
-    setState(() {
-      nameError = null;
-      phoneError = null;
-      emailError = null;
-      passwordError = null;
-      confirmPasswordError = null;
-      termsError = null;
-      generalError = null;
-    });
-  }
 
   // ============================================================
   // EMAIL VALIDATION
@@ -89,33 +75,35 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   // ============================================================
+  // CLEAR ERRORS
+  // ============================================================
+
+  void clearErrors() {
+    setState(() {
+      nameError = null;
+      phoneError = null;
+      emailError = null;
+      passwordError = null;
+      confirmPasswordError = null;
+      termsError = null;
+      generalError = null;
+    });
+  }
+
+  // ============================================================
   // REGISTER
   // ============================================================
 
   Future<void> register() async {
-    if (registering) {
-      return;
-    }
+    if (registering) return;
 
     FocusScope.of(context).unfocus();
 
-    // ------------------------------------------------------------
-    // GET VALUES
-    // ------------------------------------------------------------
-
     final name = nameController.text.trim();
-
     final phone = phoneController.text.trim();
-
     final email = emailController.text.trim();
-
     final password = passwordController.text;
-
     final confirmPassword = confirmPasswordController.text;
-
-    // ------------------------------------------------------------
-    // CLEAR OLD ERRORS
-    // ------------------------------------------------------------
 
     setState(() {
       nameError = null;
@@ -130,7 +118,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     bool hasError = false;
 
     // ============================================================
-    // FULL NAME
+    // NAME
     // ============================================================
 
     if (name.isEmpty) {
@@ -198,17 +186,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
       hasError = true;
     }
 
-    // ============================================================
-    // STOP IF VALIDATION FAILED
-    // ============================================================
-
     if (hasError) {
       setState(() {});
       return;
     }
 
     // ============================================================
-    // START LOADING
+    // START REGISTERING
     // ============================================================
 
     setState(() {
@@ -217,10 +201,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     });
 
     try {
-      // ============================================================
-      // API
-      // ============================================================
-
       final result = await AuthService.register(
         fullName: name,
         email: email,
@@ -230,35 +210,62 @@ class _RegisterScreenState extends State<RegisterScreen> {
         termsAccepted: termsAccepted,
       );
 
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
 
       // ============================================================
-      // API FAILURE
+      // REGISTRATION FAILED
       // ============================================================
 
-      if (result['success'] != true) {
+      if (result["success"] != true) {
         setState(() {
           registering = false;
+
           generalError =
-              result['message']?.toString() ??
-              "Registration failed. Please check your information.";
+              result["message"]?.toString() ??
+              "Registration failed. Please try again.";
         });
 
         return;
       }
 
       // ============================================================
-      // SUCCESS
+      // REGISTRATION SUCCESS
       // ============================================================
 
       setState(() {
         registering = false;
       });
 
+      final role = widget.selectedRole.toLowerCase();
+
       // ============================================================
-      // GO DIRECTLY TO HOME FEED
+      // MERCHANT
+      // ============================================================
+
+      if (role == "merchant") {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const MerchantApplicationScreen()),
+        );
+
+        return;
+      }
+
+      // ============================================================
+      // CREATOR
+      // ============================================================
+
+      if (role == "creator" || role == "influencer") {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const CreatorApplicationScreen()),
+        );
+
+        return;
+      }
+
+      // ============================================================
+      // NORMAL CONSUMER
       // ============================================================
 
       Navigator.pushAndRemoveUntil(
@@ -266,13 +273,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
         MaterialPageRoute(builder: (_) => const ConsumerMainScreen()),
         (route) => false,
       );
-    } catch (e) {
-      if (!mounted) {
-        return;
-      }
+    } catch (_) {
+      if (!mounted) return;
 
       setState(() {
         registering = false;
+
         generalError = "Unable to connect to the server. Please try again.";
       });
     }
@@ -325,7 +331,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   // ============================================================
-  // ERROR TEXT WIDGET
+  // ERROR TEXT
   // ============================================================
 
   Widget errorText(String? error) {
@@ -347,7 +353,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   // ============================================================
-  // GENERAL ERROR BOX
+  // GENERAL ERROR
   // ============================================================
 
   Widget generalErrorBox() {
@@ -367,13 +373,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
-            padding: EdgeInsets.only(top: 1),
-            child: Icon(Icons.error_outline, color: Colors.redAccent, size: 19),
-          ),
-
+          const Icon(Icons.error_outline, color: Colors.redAccent, size: 19),
           const SizedBox(width: 9),
-
           Expanded(
             child: Text(
               generalError!,
@@ -397,7 +398,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-
       resizeToAvoidBottomInset: true,
 
       body: SafeArea(
@@ -408,6 +408,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+
             children: [
               const SizedBox(height: 20),
 
@@ -420,9 +421,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     : () {
                         Navigator.pop(context);
                       },
-
                 padding: EdgeInsets.zero,
-
                 icon: const Icon(Icons.arrow_back, color: Colors.white),
               ),
 
@@ -433,7 +432,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
               // ==================================================
               Text(
                 roleTitle,
-
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 29,
@@ -445,7 +443,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
               Text(
                 description,
-
                 style: const TextStyle(
                   color: Colors.white60,
                   fontSize: 14,
@@ -456,7 +453,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               const SizedBox(height: 25),
 
               // ==================================================
-              // FULL NAME
+              // NAME
               // ==================================================
               AuthTextField(
                 hint: "Full name",
@@ -531,7 +528,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               errorText(confirmPasswordError),
 
               // ==================================================
-              // GENERAL SERVER ERROR
+              // SERVER ERROR
               // ==================================================
               generalErrorBox(),
 
@@ -542,22 +539,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
               // ==================================================
               Container(
                 width: double.infinity,
-
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
                   vertical: 15,
                 ),
-
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.08),
-
                   borderRadius: BorderRadius.circular(18),
-
                   border: Border.all(
                     color: Colors.white.withValues(alpha: 0.15),
                   ),
                 ),
-
                 child: Row(
                   children: [
                     const Icon(
@@ -595,9 +587,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 children: [
                   Checkbox(
                     value: termsAccepted,
-
                     activeColor: Colors.white,
-
                     checkColor: Colors.black,
 
                     onChanged: registering
@@ -618,10 +608,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   const Expanded(
                     child: Padding(
                       padding: EdgeInsets.only(top: 12),
-
                       child: Text(
                         "I agree to the Terms & Conditions and Privacy Policy.",
-
                         style: TextStyle(
                           color: Colors.white70,
                           fontSize: 13,
@@ -633,12 +621,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ],
               ),
 
-              // ==================================================
-              // TERMS ERROR
-              // ==================================================
               if (termsError != null)
                 Padding(
-                  padding: const EdgeInsets.only(left: 6, top: 0),
+                  padding: const EdgeInsets.only(left: 6),
                   child: Text(
                     termsError!,
                     style: const TextStyle(
@@ -651,7 +636,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               const SizedBox(height: 12),
 
               // ==================================================
-              // CREATE ACCOUNT
+              // REGISTER BUTTON
               // ==================================================
               registering
                   ? const Center(
@@ -683,7 +668,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                   Padding(
                     padding: EdgeInsets.symmetric(horizontal: 12),
-
                     child: Text(
                       "OR",
                       style: TextStyle(color: Colors.white54, fontSize: 13),
@@ -701,9 +685,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               // ==================================================
               SocialLoginButton(
                 text: "Continue with Google",
-
                 image: "assets/logo/google.png",
-
                 onPressed: registering
                     ? null
                     : () {
@@ -718,9 +700,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               // ==================================================
               SocialLoginButton(
                 text: "Continue with Facebook",
-
                 image: "assets/logo/facebook.png",
-
                 onPressed: registering
                     ? null
                     : () {
@@ -738,18 +718,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   onPressed: registering
                       ? null
                       : () {
-                          Navigator.pushAndRemoveUntil(
+                          Navigator.pushReplacement(
                             context,
                             MaterialPageRoute(
                               builder: (_) => const LoginScreen(),
                             ),
-                            (route) => false,
                           );
                         },
 
                   child: const Text(
                     "Already have an account? Login",
-
                     style: TextStyle(color: Colors.white, fontSize: 14),
                   ),
                 ),
@@ -776,9 +754,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.08),
-
         borderRadius: BorderRadius.circular(18),
-
         border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
       ),
 
@@ -800,10 +776,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
           suffixIcon: IconButton(
             onPressed: registering ? null : onToggle,
-
             icon: Icon(
               visible ? Icons.visibility_off : Icons.visibility,
-
               color: Colors.white70,
             ),
           ),

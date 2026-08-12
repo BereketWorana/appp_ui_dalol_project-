@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'merchant_pending_screen.dart';
+import '../../../../core/services/upgrade_service.dart';
 
 class MerchantApplicationScreen extends StatefulWidget {
   const MerchantApplicationScreen({super.key});
@@ -13,6 +14,10 @@ class MerchantApplicationScreen extends StatefulWidget {
 class _MerchantApplicationScreenState extends State<MerchantApplicationScreen> {
   int currentStep = 0;
 
+  bool submitting = false;
+
+  String? errorMessage;
+
   final businessNameController = TextEditingController();
 
   final descriptionController = TextEditingController();
@@ -23,19 +28,112 @@ class _MerchantApplicationScreenState extends State<MerchantApplicationScreen> {
 
   String businessType = "Hotel";
 
-  void nextStep() {
-    if (currentStep < 1) {
-      setState(() {
-        currentStep++;
-      });
-    } else {
-      Navigator.pushReplacement(
-        context,
+  // ============================================================
+  // NEXT STEP
+  // ============================================================
 
-        MaterialPageRoute(builder: (context) => const MerchantPendingScreen()),
-      );
+  void nextStep() {
+    if (submitting) return;
+
+    if (currentStep == 0) {
+      if (!validateBusinessInfo()) {
+        return;
+      }
+
+      setState(() {
+        currentStep = 1;
+        errorMessage = null;
+      });
+
+      return;
     }
+
+    submitApplication();
   }
+
+  // ============================================================
+  // VALIDATE
+  // ============================================================
+
+  bool validateBusinessInfo() {
+    if (businessNameController.text.trim().isEmpty) {
+      showError("Business name is required.");
+      return false;
+    }
+
+    if (descriptionController.text.trim().isEmpty) {
+      showError("Business description is required.");
+      return false;
+    }
+
+    if (locationController.text.trim().isEmpty) {
+      showError("Business location is required.");
+      return false;
+    }
+
+    if (phoneController.text.trim().isEmpty) {
+      showError("Business phone number is required.");
+      return false;
+    }
+
+    return true;
+  }
+
+  // ============================================================
+  // SUBMIT
+  // ============================================================
+
+  Future<void> submitApplication() async {
+    if (submitting) return;
+
+    setState(() {
+      submitting = true;
+      errorMessage = null;
+    });
+
+    final result = await UpgradeService.registerMerchant(
+      businessName: businessNameController.text.trim(),
+      businessType: businessType,
+      description: descriptionController.text.trim(),
+      location: locationController.text.trim(),
+      phone: phoneController.text.trim(),
+    );
+
+    if (!mounted) return;
+
+    if (result["success"] != true) {
+      setState(() {
+        submitting = false;
+        errorMessage =
+            result["message"]?.toString() ?? "Unable to submit application.";
+      });
+
+      return;
+    }
+
+    setState(() {
+      submitting = false;
+    });
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const MerchantPendingScreen()),
+    );
+  }
+
+  // ============================================================
+  // ERROR
+  // ============================================================
+
+  void showError(String message) {
+    setState(() {
+      errorMessage = message;
+    });
+  }
+
+  // ============================================================
+  // BUILD
+  // ============================================================
 
   @override
   Widget build(BuildContext context) {
@@ -44,12 +142,12 @@ class _MerchantApplicationScreenState extends State<MerchantApplicationScreen> {
 
       appBar: AppBar(
         backgroundColor: Colors.black,
-
         elevation: 0,
+
+        automaticallyImplyLeading: !submitting,
 
         title: const Text(
           "Business Application",
-
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
 
@@ -65,6 +163,8 @@ class _MerchantApplicationScreenState extends State<MerchantApplicationScreen> {
 
             const SizedBox(height: 30),
 
+            if (errorMessage != null) errorBox(),
+
             Expanded(child: currentStep == 0 ? businessInfo() : verification()),
 
             button(),
@@ -74,6 +174,10 @@ class _MerchantApplicationScreenState extends State<MerchantApplicationScreen> {
     );
   }
 
+  // ============================================================
+  // PROGRESS
+  // ============================================================
+
   Widget progressBar() {
     return Row(
       children: [
@@ -82,7 +186,6 @@ class _MerchantApplicationScreenState extends State<MerchantApplicationScreen> {
         Expanded(
           child: Container(
             height: 3,
-
             color: currentStep >= 1 ? Colors.white : Colors.white24,
           ),
         ),
@@ -95,28 +198,28 @@ class _MerchantApplicationScreenState extends State<MerchantApplicationScreen> {
   Widget stepCircle(String text, bool active) {
     return Container(
       width: 45,
-
       height: 45,
 
       decoration: BoxDecoration(
         color: active ? Colors.white : Colors.white12,
-
         shape: BoxShape.circle,
       ),
 
       child: Center(
         child: Text(
           text,
-
           style: TextStyle(
             color: active ? Colors.black : Colors.white,
-
             fontWeight: FontWeight.bold,
           ),
         ),
       ),
     );
   }
+
+  // ============================================================
+  // BUSINESS INFO
+  // ============================================================
 
   Widget businessInfo() {
     return SingleChildScrollView(
@@ -126,12 +229,9 @@ class _MerchantApplicationScreenState extends State<MerchantApplicationScreen> {
         children: [
           const Text(
             "Business Information",
-
             style: TextStyle(
               color: Colors.white,
-
               fontSize: 26,
-
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -146,7 +246,12 @@ class _MerchantApplicationScreenState extends State<MerchantApplicationScreen> {
 
           const SizedBox(height: 15),
 
-          field("Description", Icons.description, descriptionController),
+          field(
+            "Description",
+            Icons.description,
+            descriptionController,
+            maxLines: 4,
+          ),
 
           const SizedBox(height: 15),
 
@@ -154,43 +259,62 @@ class _MerchantApplicationScreenState extends State<MerchantApplicationScreen> {
 
           const SizedBox(height: 15),
 
-          field("Phone number", Icons.phone, phoneController),
+          field(
+            "Phone number",
+            Icons.phone,
+            phoneController,
+            keyboardType: TextInputType.phone,
+          ),
         ],
       ),
     );
   }
 
+  // ============================================================
+  // VERIFICATION
+  // ============================================================
+
   Widget verification() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
 
-      children: [
-        const Text(
-          "Verification",
-
-          style: TextStyle(
-            color: Colors.white,
-
-            fontSize: 26,
-
-            fontWeight: FontWeight.bold,
+        children: [
+          const Text(
+            "Verification",
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 26,
+              fontWeight: FontWeight.bold,
+            ),
           ),
-        ),
 
-        const SizedBox(height: 25),
+          const SizedBox(height: 12),
 
-        uploadCard("Business License", Icons.description),
+          const Text(
+            "Upload your verification documents.",
+            style: TextStyle(color: Colors.white60, fontSize: 14),
+          ),
 
-        const SizedBox(height: 15),
+          const SizedBox(height: 25),
 
-        uploadCard("Owner ID", Icons.badge),
+          uploadCard("Business License", Icons.description),
 
-        const SizedBox(height: 15),
+          const SizedBox(height: 15),
 
-        uploadCard("Business Images", Icons.image),
-      ],
+          uploadCard("Owner ID", Icons.badge),
+
+          const SizedBox(height: 15),
+
+          uploadCard("Business Images", Icons.image),
+        ],
+      ),
     );
   }
+
+  // ============================================================
+  // UPLOAD CARD
+  // ============================================================
 
   Widget uploadCard(String title, IconData icon) {
     return Container(
@@ -198,7 +322,6 @@ class _MerchantApplicationScreenState extends State<MerchantApplicationScreen> {
 
       decoration: BoxDecoration(
         color: Colors.white12,
-
         borderRadius: BorderRadius.circular(20),
       ),
 
@@ -211,7 +334,6 @@ class _MerchantApplicationScreenState extends State<MerchantApplicationScreen> {
           Expanded(
             child: Text(
               title,
-
               style: const TextStyle(color: Colors.white, fontSize: 16),
             ),
           ),
@@ -222,13 +344,16 @@ class _MerchantApplicationScreenState extends State<MerchantApplicationScreen> {
     );
   }
 
+  // ============================================================
+  // DROPDOWN
+  // ============================================================
+
   Widget dropdown() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 15),
 
       decoration: BoxDecoration(
         color: Colors.white12,
-
         borderRadius: BorderRadius.circular(18),
       ),
 
@@ -245,24 +370,42 @@ class _MerchantApplicationScreenState extends State<MerchantApplicationScreen> {
 
         items: [
           "Hotel",
-
           "Restaurant",
-
           "Event Place",
         ].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
 
-        onChanged: (v) {
-          setState(() {
-            businessType = v!;
-          });
-        },
+        onChanged: submitting
+            ? null
+            : (value) {
+                if (value == null) return;
+
+                setState(() {
+                  businessType = value;
+                });
+              },
       ),
     );
   }
 
-  Widget field(String hint, IconData icon, TextEditingController controller) {
+  // ============================================================
+  // FIELD
+  // ============================================================
+
+  Widget field(
+    String hint,
+    IconData icon,
+    TextEditingController controller, {
+    TextInputType? keyboardType,
+    int maxLines = 1,
+  }) {
     return TextField(
       controller: controller,
+
+      enabled: !submitting,
+
+      keyboardType: keyboardType,
+
+      maxLines: maxLines,
 
       style: const TextStyle(color: Colors.white),
 
@@ -279,25 +422,26 @@ class _MerchantApplicationScreenState extends State<MerchantApplicationScreen> {
 
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),
-
           borderSide: BorderSide.none,
         ),
       ),
     );
   }
 
+  // ============================================================
+  // BUTTON
+  // ============================================================
+
   Widget button() {
     return SizedBox(
       width: double.infinity,
-
       height: 55,
 
       child: ElevatedButton(
-        onPressed: nextStep,
+        onPressed: submitting ? null : nextStep,
 
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.white,
-
           foregroundColor: Colors.black,
 
           shape: RoundedRectangleBorder(
@@ -305,12 +449,71 @@ class _MerchantApplicationScreenState extends State<MerchantApplicationScreen> {
           ),
         ),
 
-        child: Text(
-          currentStep == 0 ? "Continue" : "Submit Application",
-
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
+        child: submitting
+            ? const SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(
+                  color: Colors.black,
+                  strokeWidth: 2.5,
+                ),
+              )
+            : Text(
+                currentStep == 0 ? "Continue" : "Submit Application",
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
       ),
     );
+  }
+
+  // ============================================================
+  // ERROR BOX
+  // ============================================================
+
+  Widget errorBox() {
+    return Container(
+      width: double.infinity,
+
+      margin: const EdgeInsets.only(bottom: 12),
+
+      padding: const EdgeInsets.all(12),
+
+      decoration: BoxDecoration(
+        color: Colors.redAccent.withValues(alpha: .1),
+
+        borderRadius: BorderRadius.circular(14),
+
+        border: Border.all(color: Colors.redAccent.withValues(alpha: .35)),
+      ),
+
+      child: Row(
+        children: [
+          const Icon(Icons.error_outline, color: Colors.redAccent, size: 20),
+
+          const SizedBox(width: 8),
+
+          Expanded(
+            child: Text(
+              errorMessage!,
+              style: const TextStyle(color: Colors.redAccent, fontSize: 13),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // DISPOSE
+  // ============================================================
+
+  @override
+  void dispose() {
+    businessNameController.dispose();
+    descriptionController.dispose();
+    locationController.dispose();
+    phoneController.dispose();
+
+    super.dispose();
   }
 }
