@@ -93,7 +93,13 @@ class ConsumerUpgradeScreen extends StatelessWidget {
                   context,
 
                   MaterialPageRoute(
-                    builder: (context) => const CreatorApplicationScreen(),
+                    builder: (context) => const CreatorApplicationScreen(
+                      fullName: '',
+                      email: '',
+                      phone: '',
+                      password: '',
+                      confirmPassword: '',
+                    ),
                   ),
                 );
               },
@@ -115,7 +121,12 @@ class ConsumerUpgradeScreen extends StatelessWidget {
                   context,
 
                   MaterialPageRoute(
-                    builder: (context) => const MerchantApplicationScreen(),
+                    builder: (context) => const MerchantApplicationScreen(
+                      fullName: '',
+                      email: '',
+                      phone: '',
+                      password: '',
+                    ),
                   ),
                 );
               },

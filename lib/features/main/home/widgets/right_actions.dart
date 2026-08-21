@@ -2,10 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../../../data/models/video.dart';
 
-import 'comments_sheet.dart';
-import '../../../../data/dummy/user_dummy.dart';
-import '../../profile/screens/poster_profile_screen.dart';
-
 class RightActions extends StatefulWidget {
   final Video video;
 
@@ -17,37 +13,34 @@ class RightActions extends StatefulWidget {
 
 class _RightActionsState extends State<RightActions>
     with SingleTickerProviderStateMixin {
-  bool liked = false;
-
-  bool saved = false;
-
-  bool followed = false;
-
   late int likes;
-
   late int bookmarks;
 
-  late AnimationController likeController;
+  late bool liked;
 
+  bool saved = false;
+  bool followed = false;
+
+  late AnimationController likeController;
   late Animation<double> likeAnimation;
 
   @override
   void initState() {
     super.initState();
 
-    likes = widget.video.likes;
+    likes = widget.video.likesCount;
 
-    bookmarks = widget.video.bookmarks;
+    bookmarks = widget.video.bookmarksCount;
+
+    liked = widget.video.isLiked;
 
     likeController = AnimationController(
       vsync: this,
-
       duration: const Duration(milliseconds: 250),
     );
 
     likeAnimation = Tween<double>(
-      begin: 1,
-
+      begin: 1.0,
       end: 1.25,
     ).animate(CurvedAnimation(parent: likeController, curve: Curves.easeOut));
   }
@@ -59,21 +52,31 @@ class _RightActionsState extends State<RightActions>
     super.dispose();
   }
 
+  // ============================================================
+  // LIKE
+  // ============================================================
+
   void toggleLike() {
     setState(() {
       liked = !liked;
 
       if (liked) {
         likes++;
-      } else {
+      } else if (likes > 0) {
         likes--;
       }
     });
 
-    likeController.forward().then((_) {
-      likeController.reverse();
+    likeController.forward(from: 0).then((_) {
+      if (mounted) {
+        likeController.reverse();
+      }
     });
   }
+
+  // ============================================================
+  // SAVE
+  // ============================================================
 
   void toggleSave() {
     setState(() {
@@ -81,11 +84,15 @@ class _RightActionsState extends State<RightActions>
 
       if (saved) {
         bookmarks++;
-      } else {
+      } else if (bookmarks > 0) {
         bookmarks--;
       }
     });
   }
+
+  // ============================================================
+  // FOLLOW
+  // ============================================================
 
   void toggleFollow() {
     setState(() {
@@ -93,30 +100,61 @@ class _RightActionsState extends State<RightActions>
     });
   }
 
+  // ============================================================
+  // PROFILE
+  // ============================================================
+
+  void openProfile() {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text("${widget.video.userName} profile")));
+  }
+
+  // ============================================================
+  // COMMENTS
+  // ============================================================
+
+  void openComments() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) {
+        return const CommentsSheet();
+      },
+    );
+  }
+
+  // ============================================================
+  // SHARE
+  // ============================================================
+
+  void openShare() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (_) {
+        return const ShareSheet();
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Poster profile image
+        // ========================================================
+        // PROFILE
+        // ========================================================
         GestureDetector(
-          onTap: () {
-            final owner = users.firstWhere(
-              (user) => user.id == widget.video.ownerId,
-            );
-
-            Navigator.push(
-              context,
-
-              MaterialPageRoute(
-                builder: (_) => PosterProfileScreen(user: owner),
-              ),
-            );
-          },
-
+          onTap: openProfile,
           child: Stack(
             clipBehavior: Clip.none,
-
             children: [
               Container(
                 width: 52,
@@ -124,23 +162,31 @@ class _RightActionsState extends State<RightActions>
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(color: Colors.white, width: 2),
-                  image: DecorationImage(
-                    image: AssetImage(
-                      users
-                          .firstWhere((user) => user.id == widget.video.ownerId)
-                          .profileImage,
-                    ),
-                    fit: BoxFit.cover,
-                  ),
+                  color: Colors.grey.shade800,
+                ),
+                child: ClipOval(
+                  child: widget.video.userAvatar.isNotEmpty
+                      ? Image.network(
+                          widget.video.userAvatar,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) {
+                            return const Icon(
+                              Icons.person,
+                              color: Colors.white,
+                              size: 30,
+                            );
+                          },
+                        )
+                      : const Icon(Icons.person, color: Colors.white, size: 30),
                 ),
               ),
 
+              // FOLLOW
               Positioned(
                 bottom: -4,
                 right: -4,
                 child: GestureDetector(
                   onTap: toggleFollow,
-
                   child: Container(
                     width: 22,
                     height: 22,
@@ -163,14 +209,14 @@ class _RightActionsState extends State<RightActions>
 
         const SizedBox(height: 22),
 
-        // Like button
+        // ========================================================
+        // LIKE
+        // ========================================================
         AnimatedBuilder(
           animation: likeAnimation,
-
           builder: (context, child) {
             return Transform.scale(scale: likeAnimation.value, child: child);
           },
-
           child: _ActionButton(
             icon: liked ? Icons.favorite : Icons.favorite_border,
             color: liked ? Colors.red : Colors.white,
@@ -181,48 +227,33 @@ class _RightActionsState extends State<RightActions>
 
         const SizedBox(height: 20),
 
-        // COMMENT BUTTON
+        // ========================================================
+        // COMMENTS
+        // ========================================================
         _ActionButton(
           icon: Icons.mode_comment_outlined,
           color: Colors.white,
-          count: widget.video.comments.toString(),
-          onTap: () {
-            showModalBottomSheet(
-              context: context,
-              isScrollControlled: true,
-              backgroundColor: Colors.transparent,
-              builder: (_) {
-                return const CommentsSheet();
-              },
-            );
-          },
+          count: widget.video.commentsCount.toString(),
+          onTap: openComments,
         ),
 
         const SizedBox(height: 20),
 
-        // SHARE BUTTON
+        // ========================================================
+        // SHARE
+        // ========================================================
         _ActionButton(
           icon: Icons.ios_share_sharp,
           color: Colors.white,
-          count: widget.video.shares.toString(),
-          onTap: () {
-            showModalBottomSheet(
-              context: context,
-              isScrollControlled: true,
-              backgroundColor: Colors.white,
-              shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-              ),
-              builder: (_) {
-                return const ShareSheet();
-              },
-            );
-          },
+          count: widget.video.sharesCount.toString(),
+          onTap: openShare,
         ),
 
         const SizedBox(height: 20),
 
-        // SAVE BUTTON
+        // ========================================================
+        // SAVE
+        // ========================================================
         _ActionButton(
           icon: saved ? Icons.bookmark : Icons.bookmark_border,
           color: saved ? Colors.yellow : Colors.white,
@@ -233,6 +264,10 @@ class _RightActionsState extends State<RightActions>
     );
   }
 }
+
+// ==================================================================
+// ACTION BUTTON
+// ==================================================================
 
 class _ActionButton extends StatelessWidget {
   final IconData icon;
@@ -265,7 +300,9 @@ class _ActionButton extends StatelessWidget {
               ),
             ],
           ),
+
           const SizedBox(height: 4),
+
           Text(
             count,
             style: const TextStyle(
@@ -287,6 +324,10 @@ class _ActionButton extends StatelessWidget {
   }
 }
 
+// ==================================================================
+// SHARE SHEET
+// ==================================================================
+
 class ShareSheet extends StatelessWidget {
   const ShareSheet({super.key});
 
@@ -295,19 +336,14 @@ class ShareSheet extends StatelessWidget {
     return SafeArea(
       child: Container(
         height: 360,
-
         padding: const EdgeInsets.all(20),
-
         child: Column(
           children: [
             Container(
               width: 45,
-
               height: 5,
-
               decoration: BoxDecoration(
                 color: Colors.grey.shade400,
-
                 borderRadius: BorderRadius.circular(20),
               ),
             ),
@@ -316,7 +352,6 @@ class ShareSheet extends StatelessWidget {
 
             const Text(
               "Share",
-
               style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
 
@@ -324,11 +359,8 @@ class ShareSheet extends StatelessWidget {
 
             Wrap(
               spacing: 22,
-
               runSpacing: 22,
-
               alignment: WrapAlignment.center,
-
               children: const [
                 _ShareItem(icon: Icons.telegram, title: "Telegram"),
                 _ShareItem(icon: Icons.chat, title: "WhatsApp"),
@@ -343,12 +375,10 @@ class ShareSheet extends StatelessWidget {
 
             SizedBox(
               width: double.infinity,
-
               child: ElevatedButton(
                 onPressed: () {
                   Navigator.pop(context);
                 },
-
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.black,
                   foregroundColor: Colors.white,
@@ -357,7 +387,6 @@ class ShareSheet extends StatelessWidget {
                     borderRadius: BorderRadius.circular(25),
                   ),
                 ),
-
                 child: const Text("Cancel"),
               ),
             ),
@@ -367,6 +396,10 @@ class ShareSheet extends StatelessWidget {
     );
   }
 }
+
+// ==================================================================
+// SHARE ITEM
+// ==================================================================
 
 class _ShareItem extends StatelessWidget {
   final IconData icon;
@@ -382,10 +415,8 @@ class _ShareItem extends StatelessWidget {
           context,
         ).showSnackBar(SnackBar(content: Text("$title selected")));
       },
-
       child: SizedBox(
         width: 70,
-
         child: Column(
           children: [
             CircleAvatar(
@@ -393,13 +424,40 @@ class _ShareItem extends StatelessWidget {
               backgroundColor: Colors.grey.shade200,
               child: Icon(icon, color: Colors.black, size: 28),
             ),
+
             const SizedBox(height: 8),
+
             Text(
               title,
               textAlign: TextAlign.center,
               style: const TextStyle(color: Colors.black, fontSize: 12),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+// ==================================================================
+// COMMENTS PLACEHOLDER
+// ==================================================================
+
+class CommentsSheet extends StatelessWidget {
+  const CommentsSheet({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 500,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+      ),
+      child: const Center(
+        child: Text(
+          "Comments",
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
       ),
     );

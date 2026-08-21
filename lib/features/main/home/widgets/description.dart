@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../../../data/models/video.dart';
-import '../../../../data/dummy/user_dummy.dart';
-import '../../booking/screens/hotel_details_screen.dart';
 
 class Description extends StatelessWidget {
   final Video video;
@@ -11,126 +9,192 @@ class Description extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // ==========================================
-    // CHECK IF VIDEO SUPPORTS BOOKING
-    // ==========================================
-
-    final bool canBook =
-        video.ownerType == "merchant" || video.ownerType == "creator";
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-
+      mainAxisSize: MainAxisSize.min,
       children: [
-        // ==========================================
-        // OWNER NAME + BOOK BUTTON
-        // ==========================================
+        // ======================================================
+        // USER NAME + BOOK BUTTON
+        // ======================================================
         Row(
           crossAxisAlignment: CrossAxisAlignment.center,
-
           children: [
+            // ==================================================
+            // USER NAME
+            // ==================================================
             Expanded(
-              child: Row(
-                children: [
-                  Flexible(
-                    child: Text(
-                      video.ownerName,
-
-                      overflow: TextOverflow.ellipsis,
-
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
+              child: Text(
+                video.ownerName.isNotEmpty ? video.ownerName : "Unknown User",
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 19,
+                  fontWeight: FontWeight.bold,
+                  shadows: [
+                    Shadow(
+                      offset: Offset(0, 1),
+                      blurRadius: 4,
+                      color: Colors.black,
                     ),
-                  ),
-
-                  // Verified badge for merchants
-                  if (video.ownerType == "merchant")
-                    const Padding(
-                      padding: EdgeInsets.only(left: 5),
-
-                      child: Icon(Icons.verified, color: Colors.blue, size: 18),
-                    ),
-                ],
+                  ],
+                ),
               ),
             ),
 
-            // ==========================================
+            // ==================================================
             // BOOK BUTTON
-            // Creator + Merchant
-            // ==========================================
-            if (canBook)
-              ElevatedButton(
-                onPressed: () {
-                  try {
-                    final hotel = users.firstWhere(
-                      (user) => user.id == video.ownerId,
-                    );
+            // ==================================================
+            //
+            // IMPORTANT:
+            // The button is ALWAYS visible now.
+            //
+            // We are NOT checking:
+            // hotelId
+            // ownerType
+            // user role
+            //
+            // Every post gets a Book button.
+            // ==================================================
+            const SizedBox(width: 10),
 
-                    Navigator.push(
-                      context,
+            ElevatedButton(
+              onPressed: () {
+                // For now we display the hotel ID.
+                //
+                // Next we can connect this directly to the
+                // hotel details/booking API.
 
-                      MaterialPageRoute(
-                        builder: (_) => HotelDetailScreen(hotel: hotel),
-                      ),
-                    );
-                  } catch (e) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text("Hotel information is not available."),
-                      ),
-                    );
-                  }
-                },
+                if (video.hotelId != null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text("Opening hotel ID ${video.hotelId}"),
+                    ),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text("Hotel information is not available."),
+                    ),
+                  );
+                }
+              },
 
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: Colors.black,
+                elevation: 2,
 
-                  foregroundColor: Colors.black,
-
-                  elevation: 2,
-
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 30,
-                    vertical: 8,
-                  ),
-
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(22),
-                  ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 8,
                 ),
 
-                child: const Text(
-                  "Book",
-
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(22),
                 ),
               ),
+
+              child: const Text(
+                "Book",
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+              ),
+            ),
           ],
         ),
 
-        const SizedBox(height: 8),
-
-        // ==========================================
-        // VIDEO DESCRIPTION
-        // ==========================================
         const SizedBox(height: 6),
 
-        Text(
-          video.description,
-
-          maxLines: 2,
-
-          overflow: TextOverflow.ellipsis,
-
-          style: const TextStyle(
-            color: Colors.white70,
-            fontSize: 13,
-            height: 1.2,
+        // ======================================================
+        // TITLE
+        // ======================================================
+        if (video.title.isNotEmpty)
+          Text(
+            video.title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+            ),
           ),
-        ),
+
+        // ======================================================
+        // DESCRIPTION
+        // ======================================================
+        if (video.description.isNotEmpty) ...[
+          const SizedBox(height: 4),
+
+          Text(
+            video.description,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 13,
+              height: 1.3,
+            ),
+          ),
+        ],
+
+        // ======================================================
+        // HOTEL
+        // ======================================================
+        if (video.hotelName != null && video.hotelName!.isNotEmpty) ...[
+          const SizedBox(height: 6),
+
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.hotel, color: Colors.white, size: 16),
+
+              const SizedBox(width: 5),
+
+              Flexible(
+                child: Text(
+                  video.hotelName!,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+
+              if (video.hotelCity != null && video.hotelCity!.isNotEmpty) ...[
+                const SizedBox(width: 5),
+
+                Text(
+                  "• ${video.hotelCity}",
+                  style: const TextStyle(color: Colors.white70, fontSize: 12),
+                ),
+              ],
+            ],
+          ),
+        ],
+
+        // ======================================================
+        // HASHTAGS
+        // ======================================================
+        if (video.hashtags.isNotEmpty) ...[
+          const SizedBox(height: 5),
+
+          Text(
+            video.hashtags
+                .map((tag) => tag.startsWith("#") ? tag : "#$tag")
+                .join(" "),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
       ],
     );
   }

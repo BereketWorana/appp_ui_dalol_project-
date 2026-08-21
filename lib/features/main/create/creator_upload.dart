@@ -1,7 +1,11 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show rootBundle;
+import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
+
+import '../../../core/services/auth_service.dart';
 
 class CreatorUploadScreen extends StatefulWidget {
   const CreatorUploadScreen({super.key});
@@ -11,307 +15,662 @@ class CreatorUploadScreen extends StatefulWidget {
 }
 
 class _CreatorUploadScreenState extends State<CreatorUploadScreen> {
-  final captionController = TextEditingController();
+  // ============================================================
+  // API
+  // ============================================================
 
-  List<Map<String, dynamic>> hotelOwners = [];
+  static const String baseUrl = "https://booking.dalloltech.com/api";
 
-  Map<String, dynamic>? selectedHotel;
+  // ============================================================
+  // CONTROLLERS
+  // ============================================================
 
-  bool loadingHotels = true;
+  final titleController = TextEditingController();
+  final descriptionController = TextEditingController();
+  final hashtagsController = TextEditingController();
+  final hotelIdController = TextEditingController();
+
+  // ============================================================
+  // IMAGE / VIDEO PICKER
+  // ============================================================
+
+  final ImagePicker picker = ImagePicker();
+
+  File? selectedMedia;
+
+  String? selectedMediaType;
+
+  // ============================================================
+  // STATE
+  // ============================================================
+
   bool posting = false;
 
-  String? selectedVideo;
-
-  @override
-  void initState() {
-    super.initState();
-    loadHotelOwners();
-  }
-
   // ============================================================
-  // LOAD REGISTERED HOTEL OWNERS
+  // PICK MEDIA
   // ============================================================
 
-  Future<void> loadHotelOwners() async {
+  Future<void> selectMedia() async {
+    if (posting) return;
+
     try {
-      final jsonString = await rootBundle.loadString('assets/data/users.json');
+      final XFile? file = await picker.pickMedia();
 
-      final List<dynamic> users = jsonDecode(jsonString);
+      if (file == null) {
+        return;
+      }
 
-      final hotels = users
-          .where(
-            (user) =>
-                user is Map<String, dynamic> &&
-                user['role'] == 'merchant' &&
-                user['status'] == 'active',
-          )
-          .map<Map<String, dynamic>>((user) => Map<String, dynamic>.from(user))
-          .toList();
+      final extension = file.path.split('.').last.toLowerCase();
+
+      final imageExtensions = ["jpg", "jpeg", "png", "gif", "webp"];
+
+      final videoExtensions = ["mp4", "mov", "avi", "mkv", "webm", "3gp"];
+
+      String? type;
+
+      if (imageExtensions.contains(extension)) {
+        type = "image";
+      } else if (videoExtensions.contains(extension)) {
+        type = "video";
+      }
+
+      if (type == null) {
+        showError("Unsupported media type. Please select an image or video.");
+
+        return;
+      }
+
+      final fileObject = File(file.path);
+
+      if (!await fileObject.exists()) {
+        showError("The selected file could not be found.");
+
+        return;
+      }
 
       if (!mounted) return;
 
       setState(() {
-        hotelOwners = hotels;
-        loadingHotels = false;
+        selectedMedia = fileObject;
+        selectedMediaType = type;
       });
     } catch (e) {
+      debugPrint("Media selection error: $e");
+
       if (!mounted) return;
 
-      setState(() {
-        loadingHotels = false;
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Could not load registered hotels: $e")),
-      );
+      showError("Unable to select the media file.");
     }
   }
 
   // ============================================================
-  // SELECT VIDEO
+  // POST VIDEO / IMAGE
   // ============================================================
 
-  Future<void> selectVideo() async {
-    /*
-      Temporary video selector.
+  Future<void> postContent() async {
+    if (posting) return;
 
-      Later we can connect this to:
-      image_picker
-      file_picker
-      or your backend/video storage.
+    FocusScope.of(context).unfocus();
 
-      For now this creates a selected-video state.
-    */
+    // ==========================================================
+    // VALIDATE LOGIN
+    // ==========================================================
 
-    setState(() {
-      selectedVideo = "selected_video.mp4";
-    });
+    final user = AuthService.currentUser;
+    final accessToken = AuthService.accessToken;
 
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text("Video selected")));
-  }
-
-  // ============================================================
-  // SELECT HOTEL
-  // ============================================================
-
-  Future<void> selectHotel() async {
-    if (hotelOwners.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("No registered hotels are available")),
-      );
+    if (user == null) {
+      showError("You are not logged in.");
 
       return;
     }
 
-    final hotel = await showModalBottomSheet<Map<String, dynamic>>(
-      context: context,
-      backgroundColor: const Color(0xFF181818),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (context) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  "Tag a Hotel",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-
-                const SizedBox(height: 8),
-
-                const Text(
-                  "Select one registered hotel for this video.",
-                  style: TextStyle(color: Colors.white60, fontSize: 14),
-                ),
-
-                const SizedBox(height: 20),
-
-                Flexible(
-                  child: ListView.separated(
-                    shrinkWrap: true,
-                    itemCount: hotelOwners.length,
-                    separatorBuilder: (_, _) =>
-                        const Divider(color: Colors.white12),
-                    itemBuilder: (context, index) {
-                      final hotel = hotelOwners[index];
-
-                      final name =
-                          hotel['fullName']?.toString() ?? "Unnamed Hotel";
-
-                      final email = hotel['email']?.toString() ?? "";
-
-                      final profileImage = hotel['profileImage']?.toString();
-
-                      return ListTile(
-                        contentPadding: EdgeInsets.zero,
-
-                        leading: CircleAvatar(
-                          radius: 25,
-                          backgroundColor: Colors.white12,
-                          backgroundImage:
-                              profileImage != null && profileImage.isNotEmpty
-                              ? AssetImage(profileImage)
-                              : null,
-                          child: profileImage == null || profileImage.isEmpty
-                              ? const Icon(Icons.hotel, color: Colors.white)
-                              : null,
-                        ),
-
-                        title: Text(
-                          name,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-
-                        subtitle: Text(
-                          email,
-                          style: const TextStyle(
-                            color: Colors.white54,
-                            fontSize: 12,
-                          ),
-                        ),
-
-                        trailing: const Icon(
-                          Icons.arrow_forward_ios,
-                          color: Colors.white38,
-                          size: 16,
-                        ),
-
-                        onTap: () {
-                          Navigator.pop(context, hotel);
-                        },
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-
-    if (hotel != null && mounted) {
-      setState(() {
-        selectedHotel = hotel;
-      });
-    }
-  }
-
-  // ============================================================
-  // POST VIDEO
-  // ============================================================
-
-  Future<void> postVideo() async {
-    final caption = captionController.text.trim();
-
-    if (selectedVideo == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Please select a video")));
+    if (accessToken == null || accessToken.isEmpty) {
+      showError("Authentication token is missing. Please login again.");
 
       return;
     }
 
-    if (caption.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Please enter a caption")));
+    // ==========================================================
+    // VALIDATE MEDIA
+    // ==========================================================
+
+    if (selectedMedia == null || selectedMediaType == null) {
+      showError("Please select an image or video.");
 
       return;
     }
 
-    // HOTEL TAG IS REQUIRED
-    if (selectedHotel == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please tag a hotel before posting")),
-      );
+    // ==========================================================
+    // VALIDATE TITLE
+    // ==========================================================
+
+    final title = titleController.text.trim();
+
+    if (title.isEmpty) {
+      showError("Please enter a post title.");
 
       return;
     }
+
+    if (title.length < 3) {
+      showError("Post title must be at least 3 characters.");
+
+      return;
+    }
+
+    // ==========================================================
+    // DESCRIPTION
+    // ==========================================================
+
+    final description = descriptionController.text.trim();
+
+    // ==========================================================
+    // HASHTAGS
+    // ==========================================================
+
+    final hashtags = hashtagsController.text.trim();
+
+    // ==========================================================
+    // HOTEL ID
+    // ==========================================================
+
+    final hotelIdText = hotelIdController.text.trim();
+
+    if (hotelIdText.isNotEmpty) {
+      final hotelId = int.tryParse(hotelIdText);
+
+      if (hotelId == null || hotelId <= 0) {
+        showError("Please enter a valid hotel ID.");
+
+        return;
+      }
+    }
+
+    // ==========================================================
+    // START POSTING
+    // ==========================================================
 
     setState(() {
       posting = true;
     });
 
-    /*
-      Later send this information to your backend:
+    try {
+      // ========================================================
+      // URL
+      // ========================================================
 
-      video
-      caption
-      taggedHotelId
+      final uri = Uri.parse("$baseUrl/posts/create");
 
-      Example:
+      // ========================================================
+      // MULTIPART REQUEST
+      // ========================================================
 
-      final taggedHotelId = selectedHotel!['id'];
-    */
+      final request = http.MultipartRequest("POST", uri);
 
-    final taggedHotelId = selectedHotel!['id'];
-    final taggedHotelName = selectedHotel!['fullName'];
+      // ========================================================
+      // HEADERS
+      // ========================================================
 
-    debugPrint("VIDEO: $selectedVideo");
-    debugPrint("CAPTION: $caption");
-    debugPrint("TAGGED HOTEL ID: $taggedHotelId");
-    debugPrint("TAGGED HOTEL: $taggedHotelName");
+      request.headers.addAll({
+        "Accept": "application/json",
+        "Authorization": "Bearer $accessToken",
+      });
 
-    await Future.delayed(const Duration(seconds: 1));
+      // ========================================================
+      // USER ID
+      // ========================================================
 
-    if (!mounted) return;
+      request.fields["user_id"] = user.id.toString();
 
-    setState(() {
-      posting = false;
-    });
+      // ========================================================
+      // TITLE
+      // ========================================================
 
+      request.fields["title"] = title;
+
+      // ========================================================
+      // DESCRIPTION
+      // ========================================================
+
+      if (description.isNotEmpty) {
+        request.fields["description"] = description;
+      }
+
+      // ========================================================
+      // POST TYPE
+      // ========================================================
+
+      request.fields["post_type"] = selectedMediaType!;
+
+      // ========================================================
+      // HASHTAGS
+      // ========================================================
+
+      if (hashtags.isNotEmpty) {
+        request.fields["hashtags"] = hashtags;
+      }
+
+      // ========================================================
+      // HOTEL ID
+      // ========================================================
+
+      if (hotelIdText.isNotEmpty) {
+        request.fields["hotel_id"] = hotelIdText;
+      }
+
+      // ========================================================
+      // MEDIA FILE
+      // ========================================================
+
+      final mediaFile = await http.MultipartFile.fromPath(
+        "media",
+        selectedMedia!.path,
+      );
+
+      request.files.add(mediaFile);
+
+      // ========================================================
+      // DEBUG
+      // ========================================================
+
+      debugPrint("========================================");
+      debugPrint("CREATE POST REQUEST");
+      debugPrint("========================================");
+      debugPrint("User ID: ${user.id}");
+      debugPrint("Title: $title");
+      debugPrint("Description: $description");
+      debugPrint("Post Type: $selectedMediaType");
+      debugPrint("Hashtags: $hashtags");
+      debugPrint("Hotel ID: $hotelIdText");
+      debugPrint("Media: ${selectedMedia!.path}");
+      debugPrint("========================================");
+
+      // ========================================================
+      // SEND
+      // ========================================================
+
+      final streamedResponse = await request.send();
+
+      final response = await http.Response.fromStream(streamedResponse);
+
+      if (!mounted) return;
+
+      debugPrint("========================================");
+      debugPrint("CREATE POST RESPONSE");
+      debugPrint("Status: ${response.statusCode}");
+      debugPrint("Body: ${response.body}");
+      debugPrint("========================================");
+
+      // ========================================================
+      // PARSE RESPONSE
+      // ========================================================
+
+      Map<String, dynamic>? body;
+
+      try {
+        final decoded = jsonDecode(response.body);
+
+        if (decoded is Map<String, dynamic>) {
+          body = decoded;
+        }
+      } catch (_) {
+        body = null;
+      }
+
+      // ========================================================
+      // SUCCESS
+      // ========================================================
+
+      if (response.statusCode >= 200 &&
+          response.statusCode < 300 &&
+          body != null &&
+          body["success"] == true) {
+        setState(() {
+          posting = false;
+        });
+
+        final postId = body["post_id"]?.toString() ?? "";
+
+        final mediaUrls = body["media_urls"];
+
+        String mediaUrl = "";
+
+        if (mediaUrls is List && mediaUrls.isNotEmpty) {
+          mediaUrl = mediaUrls.first.toString();
+        }
+
+        await showSuccessDialog(postId: postId, mediaUrl: mediaUrl);
+
+        if (!mounted) return;
+
+        Navigator.pop(context);
+
+        return;
+      }
+
+      // ========================================================
+      // API ERROR
+      // ========================================================
+
+      setState(() {
+        posting = false;
+      });
+
+      final message = parseApiError(response.statusCode, body, response.body);
+
+      showError(message);
+    } on SocketException {
+      if (!mounted) return;
+
+      setState(() {
+        posting = false;
+      });
+
+      showError(
+        "Unable to connect to the server. Please check your internet connection.",
+      );
+    } on http.ClientException {
+      if (!mounted) return;
+
+      setState(() {
+        posting = false;
+      });
+
+      showError("Unable to connect to the server.");
+    } catch (e) {
+      debugPrint("Create post error: $e");
+
+      if (!mounted) return;
+
+      setState(() {
+        posting = false;
+      });
+
+      showError("Unable to create the post. Please try again.");
+    }
+  }
+
+  // ============================================================
+  // PARSE API ERROR
+  // ============================================================
+
+  String parseApiError(
+    int statusCode,
+    Map<String, dynamic>? body,
+    String rawBody,
+  ) {
+    // ==========================================================
+    // API MESSAGE
+    // ==========================================================
+
+    if (body != null) {
+      final message = body["message"];
+
+      if (message is String && message.trim().isNotEmpty) {
+        return message;
+      }
+
+      // ========================================================
+      // API "MESSAGES"
+      // ========================================================
+
+      final messages = body["messages"];
+
+      if (messages is Map) {
+        final errors = <String>[];
+
+        messages.forEach((key, value) {
+          if (value is String) {
+            errors.add(value);
+          } else if (value is List) {
+            for (final item in value) {
+              errors.add(item.toString());
+            }
+          }
+        });
+
+        if (errors.isNotEmpty) {
+          return errors.join("\n");
+        }
+      }
+
+      // ========================================================
+      // API "ERRORS"
+      // ========================================================
+
+      final errors = body["errors"];
+
+      if (errors is Map) {
+        final errorMessages = <String>[];
+
+        errors.forEach((key, value) {
+          if (value is String) {
+            errorMessages.add(value);
+          } else if (value is List) {
+            for (final item in value) {
+              errorMessages.add(item.toString());
+            }
+          }
+        });
+
+        if (errorMessages.isNotEmpty) {
+          return errorMessages.join("\n");
+        }
+      }
+    }
+
+    // ==========================================================
+    // STATUS CODES
+    // ==========================================================
+
+    if (statusCode == 401) {
+      return "Your session has expired. Please login again.";
+    }
+
+    if (statusCode == 403) {
+      return "You are not allowed to create posts.";
+    }
+
+    if (statusCode == 422) {
+      return "Please check the information you entered.";
+    }
+
+    if (statusCode >= 500) {
+      return "Server error. Please try again later.";
+    }
+
+    // ==========================================================
+    // HTML RESPONSE
+    // ==========================================================
+
+    final lower = rawBody.toLowerCase();
+
+    if (lower.contains("<html") ||
+        lower.contains("<!doctype") ||
+        lower.contains("<body")) {
+      return "The server returned an invalid response.";
+    }
+
+    return "Post creation failed. Please try again.";
+  }
+
+  // ============================================================
+  // SUCCESS DIALOG
+  // ============================================================
+
+  Future<void> showSuccessDialog({
+    required String postId,
+    required String mediaUrl,
+  }) async {
     await showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (_) {
         return AlertDialog(
           backgroundColor: const Color(0xFF181818),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
-
           title: const Row(
             children: [
               Icon(Icons.check_circle, color: Colors.green),
               SizedBox(width: 10),
-              Text("Video Posted", style: TextStyle(color: Colors.white)),
+              Expanded(
+                child: Text(
+                  "Post Created",
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
             ],
           ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                "Your post was successfully uploaded.",
+                style: TextStyle(color: Colors.white70),
+              ),
 
-          content: Text(
-            "Your video has been posted and tagged with $taggedHotelName.",
-            style: const TextStyle(color: Colors.white70),
+              if (postId.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Text(
+                  "Post ID: $postId",
+                  style: const TextStyle(color: Colors.white54, fontSize: 13),
+                ),
+              ],
+
+              if (mediaUrl.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                const Text(
+                  "Media uploaded successfully.",
+                  style: TextStyle(color: Colors.white54, fontSize: 13),
+                ),
+              ],
+            ],
           ),
-
           actions: [
             TextButton(
               onPressed: () {
                 Navigator.pop(context);
               },
-              child: const Text("OK"),
+              child: const Text("OK", style: TextStyle(color: Colors.white)),
             ),
           ],
         );
       },
     );
+  }
 
+  // ============================================================
+  // ERROR
+  // ============================================================
+
+  void showError(String message) {
     if (!mounted) return;
 
-    Navigator.pop(context);
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: Colors.redAccent,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 4),
+        content: Text(message),
+      ),
+    );
+  }
+
+  // ============================================================
+  // MEDIA PREVIEW
+  // ============================================================
+
+  Widget mediaPreview() {
+    if (selectedMedia == null) {
+      return const Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.video_library_outlined, color: Colors.white, size: 55),
+          SizedBox(height: 15),
+          Text(
+            "Select Image or Video",
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          SizedBox(height: 6),
+          Text("Tap to choose media", style: TextStyle(color: Colors.white54)),
+        ],
+      );
+    }
+
+    if (selectedMediaType == "image") {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: Image.file(
+          selectedMedia!,
+          width: double.infinity,
+          height: 230,
+          fit: BoxFit.cover,
+        ),
+      );
+    }
+
+    return const Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(Icons.check_circle, color: Colors.green, size: 55),
+        SizedBox(height: 15),
+        Text(
+          "Video Selected",
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        SizedBox(height: 6),
+        Text("Tap to change video", style: TextStyle(color: Colors.white54)),
+      ],
+    );
+  }
+
+  // ============================================================
+  // TEXT FIELD
+  // ============================================================
+
+  Widget field(
+    String hint,
+    IconData icon,
+    TextEditingController controller, {
+    int maxLines = 1,
+    TextInputType? keyboardType,
+  }) {
+    return TextField(
+      controller: controller,
+      maxLines: maxLines,
+      keyboardType: keyboardType,
+      enabled: !posting,
+      style: const TextStyle(color: Colors.white),
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: const TextStyle(color: Colors.white38),
+        prefixIcon: Icon(icon, color: Colors.white70),
+        filled: true,
+        fillColor: const Color(0xFF181818),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Colors.white24),
+        ),
+      ),
+    );
   }
 
   // ============================================================
@@ -320,356 +679,266 @@ class _CreatorUploadScreenState extends State<CreatorUploadScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final user = AuthService.currentUser;
+
     return Scaffold(
       backgroundColor: Colors.black,
 
       appBar: AppBar(
         backgroundColor: Colors.black,
         elevation: 0,
-
+        iconTheme: const IconThemeData(color: Colors.white),
         title: const Text(
-          "Create Video",
+          "Create Post",
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
-
         centerTitle: true,
-
-        iconTheme: const IconThemeData(color: Colors.white),
       ),
 
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.all(20),
 
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-
-            children: [
-              // ==================================================
-              // VIDEO PREVIEW
-              // ==================================================
-              GestureDetector(
-                onTap: selectVideo,
-
-                child: Container(
-                  width: double.infinity,
-                  height: 230,
-
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF181818),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.white12),
-                  ),
-
-                  child: selectedVideo == null
-                      ? const Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // ==================================================
+                    // USER
+                    // ==================================================
+                    if (user != null)
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: .06),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Row(
                           children: [
-                            Icon(
-                              Icons.video_library_outlined,
-                              color: Colors.white,
-                              size: 55,
+                            const CircleAvatar(
+                              backgroundColor: Colors.white12,
+                              child: Icon(Icons.person, color: Colors.white),
                             ),
 
-                            SizedBox(height: 15),
+                            const SizedBox(width: 12),
 
-                            Text(
-                              "Select Video",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    user.fullName,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 3),
+                                  Text(
+                                    "User ID: ${user.id}",
+                                    style: const TextStyle(
+                                      color: Colors.white54,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ),
-
-                            SizedBox(height: 6),
-
-                            Text(
-                              "Tap to choose a video",
-                              style: TextStyle(color: Colors.white54),
-                            ),
-                          ],
-                        )
-                      : const Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.check_circle,
-                              color: Colors.green,
-                              size: 55,
-                            ),
-
-                            SizedBox(height: 15),
-
-                            Text(
-                              "Video Selected",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-
-                            SizedBox(height: 6),
-
-                            Text(
-                              "Tap to change video",
-                              style: TextStyle(color: Colors.white54),
                             ),
                           ],
                         ),
-                ),
-              ),
-
-              const SizedBox(height: 25),
-
-              // ==================================================
-              // CAPTION
-              // ==================================================
-              const Text(
-                "Caption",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-
-              const SizedBox(height: 10),
-
-              TextField(
-                controller: captionController,
-                maxLines: 4,
-
-                style: const TextStyle(color: Colors.white),
-
-                decoration: InputDecoration(
-                  hintText: "Write something about your video...",
-                  hintStyle: const TextStyle(color: Colors.white38),
-
-                  filled: true,
-                  fillColor: const Color(0xFF181818),
-
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide.none,
-                  ),
-
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: const BorderSide(color: Colors.white24),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 25),
-
-              // ==================================================
-              // TAG HOTEL
-              // ==================================================
-              Row(
-                children: [
-                  const Text(
-                    "Tag Hotel",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-
-                  const SizedBox(width: 4),
-
-                  const Text(
-                    "*",
-                    style: TextStyle(color: Colors.red, fontSize: 18),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 10),
-
-              loadingHotels
-                  ? Container(
-                      height: 70,
-                      width: double.infinity,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF181818),
-                        borderRadius: BorderRadius.circular(16),
                       ),
-                      child: const CircularProgressIndicator(
-                        color: Colors.white,
-                      ),
-                    )
-                  : GestureDetector(
-                      onTap: selectHotel,
+
+                    const SizedBox(height: 22),
+
+                    // ==================================================
+                    // MEDIA
+                    // ==================================================
+                    GestureDetector(
+                      onTap: posting ? null : selectMedia,
 
                       child: Container(
                         width: double.infinity,
-                        padding: const EdgeInsets.all(15),
+                        height: 230,
 
                         decoration: BoxDecoration(
                           color: const Color(0xFF181818),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: selectedHotel != null
-                                ? Colors.white24
-                                : Colors.red.withValues(alpha: .4),
-                          ),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: Colors.white12),
                         ),
 
-                        child: selectedHotel == null
-                            ? const Row(
-                                children: [
-                                  CircleAvatar(
-                                    backgroundColor: Colors.white10,
-                                    child: Icon(
-                                      Icons.hotel,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-
-                                  SizedBox(width: 14),
-
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          "Select a hotel",
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                        SizedBox(height: 4),
-                                        Text(
-                                          "Choose one registered hotel",
-                                          style: TextStyle(
-                                            color: Colors.white54,
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-
-                                  Icon(
-                                    Icons.keyboard_arrow_down,
-                                    color: Colors.white54,
-                                  ),
-                                ],
-                              )
-                            : Row(
-                                children: [
-                                  CircleAvatar(
-                                    radius: 25,
-                                    backgroundColor: Colors.white10,
-                                    backgroundImage:
-                                        selectedHotel!['profileImage'] != null
-                                        ? AssetImage(
-                                            selectedHotel!['profileImage'],
-                                          )
-                                        : null,
-                                    child:
-                                        selectedHotel!['profileImage'] == null
-                                        ? const Icon(
-                                            Icons.hotel,
-                                            color: Colors.white,
-                                          )
-                                        : null,
-                                  ),
-
-                                  const SizedBox(width: 14),
-
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          selectedHotel!['fullName'] ?? "Hotel",
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-
-                                        const SizedBox(height: 4),
-
-                                        const Text(
-                                          "Registered hotel",
-                                          style: TextStyle(
-                                            color: Colors.white54,
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-
-                                  const Icon(
-                                    Icons.check_circle,
-                                    color: Colors.green,
-                                  ),
-                                ],
-                              ),
+                        child: mediaPreview(),
                       ),
                     ),
 
-              const SizedBox(height: 30),
+                    const SizedBox(height: 25),
 
-              // ==================================================
-              // POST BUTTON
-              // ==================================================
-              SizedBox(
+                    // ==================================================
+                    // TITLE
+                    // ==================================================
+                    const Text(
+                      "Title",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+
+                    const SizedBox(height: 10),
+
+                    field("Enter post title", Icons.title, titleController),
+
+                    const SizedBox(height: 20),
+
+                    // ==================================================
+                    // DESCRIPTION
+                    // ==================================================
+                    const Text(
+                      "Description",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+
+                    const SizedBox(height: 10),
+
+                    field(
+                      "Write something about your post...",
+                      Icons.description_outlined,
+                      descriptionController,
+                      maxLines: 4,
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    // ==================================================
+                    // HASHTAGS
+                    // ==================================================
+                    const Text(
+                      "Hashtags",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+
+                    const SizedBox(height: 10),
+
+                    field(
+                      "travel, ethiopia, adventure",
+                      Icons.tag,
+                      hashtagsController,
+                    ),
+
+                    const SizedBox(height: 25),
+
+                    // ==================================================
+                    // HOTEL
+                    // ==================================================
+                    Row(
+                      children: [
+                        const Text(
+                          "Tag Hotel",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+
+                        const SizedBox(width: 6),
+
+                        const Text(
+                          "(Optional)",
+                          style: TextStyle(color: Colors.white38, fontSize: 12),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 8),
+
+                    const Text(
+                      "For now, enter the hotel ID manually.",
+                      style: TextStyle(color: Colors.white54, fontSize: 12),
+                    ),
+
+                    const SizedBox(height: 10),
+
+                    field(
+                      "Hotel ID e.g. 1",
+                      Icons.hotel_outlined,
+                      hotelIdController,
+                      keyboardType: TextInputType.number,
+                    ),
+
+                    const SizedBox(height: 30),
+                  ],
+                ),
+              ),
+            ),
+
+            // ========================================================
+            // POST BUTTON
+            // ========================================================
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
+
+              child: SizedBox(
                 width: double.infinity,
-                height: 54,
+                height: 55,
 
                 child: ElevatedButton.icon(
-                  onPressed: posting ? null : postVideo,
+                  onPressed: posting ? null : postContent,
 
                   icon: posting
                       ? const SizedBox(
-                          width: 20,
-                          height: 20,
+                          width: 21,
+                          height: 21,
                           child: CircularProgressIndicator(
-                            strokeWidth: 2,
+                            strokeWidth: 2.5,
                             color: Colors.white,
                           ),
                         )
                       : const Icon(Icons.publish),
 
-                  label: Text(posting ? "Posting..." : "Post Video"),
+                  label: Text(posting ? "Uploading..." : "Create Post"),
 
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF2454E8),
                     foregroundColor: Colors.white,
-
                     disabledBackgroundColor: const Color(
                       0xFF2454E8,
                     ).withValues(alpha: .5),
-
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
                   ),
                 ),
               ),
-
-              const SizedBox(height: 20),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 
+  // ============================================================
+  // DISPOSE
+  // ============================================================
+
   @override
   void dispose() {
-    captionController.dispose();
+    titleController.dispose();
+    descriptionController.dispose();
+    hashtagsController.dispose();
+    hotelIdController.dispose();
+
     super.dispose();
   }
 }

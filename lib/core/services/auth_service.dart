@@ -10,7 +10,7 @@ class AuthService {
   // API
   // ============================================================
 
-  static const String baseUrl = "https://booking.dalloltech.com/api";
+  static const String baseUrl = "https://booking.dalloltech.com/api/";
 
   // ============================================================
   // SESSION KEYS
@@ -56,7 +56,7 @@ class AuthService {
   }
 
   // ============================================================
-  // REMEMBER ME STATUS
+  // REMEMBER ME
   // ============================================================
 
   static bool _rememberMe = false;
@@ -65,11 +65,6 @@ class AuthService {
 
   // ============================================================
   // INITIALIZE AUTH SESSION
-  //
-  // Call this BEFORE runApp().
-  //
-  // If Remember Me was enabled, the saved session is restored.
-  // Otherwise the user starts as logged out.
   // ============================================================
 
   static Future<void> initialize() async {
@@ -77,25 +72,13 @@ class AuthService {
 
     _rememberMe = prefs.getBool(_rememberMeKey) ?? false;
 
-    // ------------------------------------------------------------
-    // If Remember Me was NOT enabled, do not restore the session.
-    // ------------------------------------------------------------
-
     if (!_rememberMe) {
       _accessToken = null;
       _currentUser = null;
       return;
     }
 
-    // ------------------------------------------------------------
-    // Restore access token
-    // ------------------------------------------------------------
-
     _accessToken = prefs.getString(_accessTokenKey);
-
-    // ------------------------------------------------------------
-    // Restore current user
-    // ------------------------------------------------------------
 
     final userJson = prefs.getString(_userKey);
 
@@ -112,10 +95,6 @@ class AuthService {
         _currentUser = null;
       }
     }
-
-    // ------------------------------------------------------------
-    // If either token or user is missing, session is invalid.
-    // ------------------------------------------------------------
 
     if (_accessToken == null || _accessToken!.isEmpty || _currentUser == null) {
       _accessToken = null;
@@ -137,13 +116,9 @@ class AuthService {
     bool rememberMe = false,
   }) async {
     try {
-      // ----------------------------------------------------------
-      // SEND LOGIN REQUEST
-      // ----------------------------------------------------------
-
       final response = await http
           .post(
-            Uri.parse("$baseUrl/auth/login"),
+            Uri.parse("${baseUrl}auth/login"),
             headers: {
               "Content-Type": "application/json",
               "Accept": "application/json",
@@ -151,10 +126,6 @@ class AuthService {
             body: jsonEncode({"phone": phone, "password": password}),
           )
           .timeout(const Duration(seconds: 20));
-
-      // ----------------------------------------------------------
-      // DECODE RESPONSE
-      // ----------------------------------------------------------
 
       Map<String, dynamic> body;
 
@@ -170,10 +141,6 @@ class AuthService {
         return {"success": false, "message": "Invalid response from server."};
       }
 
-      // ----------------------------------------------------------
-      // LOGIN SUCCESS
-      // ----------------------------------------------------------
-
       if (response.statusCode == 200 && body["status"] == true) {
         final data = body["data"];
 
@@ -183,10 +150,6 @@ class AuthService {
             "message": "Invalid login response from server.",
           };
         }
-
-        // --------------------------------------------------------
-        // USER
-        // --------------------------------------------------------
 
         final rawUser = data["user"];
 
@@ -199,10 +162,6 @@ class AuthService {
 
         final userData = Map<String, dynamic>.from(rawUser);
 
-        // --------------------------------------------------------
-        // TOKENS
-        // --------------------------------------------------------
-
         final rawTokens = data["tokens"];
 
         if (rawTokens == null || rawTokens is! Map) {
@@ -213,10 +172,6 @@ class AuthService {
         }
 
         final tokenData = Map<String, dynamic>.from(rawTokens);
-
-        // --------------------------------------------------------
-        // ACCESS TOKEN
-        // --------------------------------------------------------
 
         final accessToken = tokenData["access_token"]?.toString();
 
@@ -229,37 +184,19 @@ class AuthService {
 
         _accessToken = accessToken;
 
-        // --------------------------------------------------------
-        // REFRESH TOKEN
-        // --------------------------------------------------------
-
         final refreshToken = tokenData["refresh_token"]?.toString();
 
-        // --------------------------------------------------------
-        // CONVERT API USER TO APP USER
-        // --------------------------------------------------------
-
+        // IMPORTANT:
+        // Login role comes from API user_type.
         _currentUser = _userFromApi(userData);
 
-        // --------------------------------------------------------
-        // REMEMBER ME
-        // --------------------------------------------------------
-
         _rememberMe = rememberMe;
-
-        // --------------------------------------------------------
-        // SAVE SESSION
-        // --------------------------------------------------------
 
         final prefs = await SharedPreferences.getInstance();
 
         await prefs.setBool(_rememberMeKey, rememberMe);
 
         if (rememberMe) {
-          // ------------------------------------------------------
-          // Save session permanently.
-          // ------------------------------------------------------
-
           await prefs.setString(_accessTokenKey, _accessToken!);
 
           if (refreshToken != null && refreshToken.isNotEmpty) {
@@ -268,22 +205,10 @@ class AuthService {
 
           await prefs.setString(_userKey, jsonEncode(_currentUser!.toJson()));
         } else {
-          // ------------------------------------------------------
-          // Do NOT save login session.
-          //
-          // The user remains logged in while the app is running,
-          // but after the app is completely closed/reopened,
-          // initialize() will not restore the session.
-          // ------------------------------------------------------
-
           await prefs.remove(_accessTokenKey);
           await prefs.remove(_refreshTokenKey);
           await prefs.remove(_userKey);
         }
-
-        // --------------------------------------------------------
-        // SUCCESS
-        // --------------------------------------------------------
 
         return {
           "success": true,
@@ -291,10 +216,6 @@ class AuthService {
           "user": _currentUser,
         };
       }
-
-      // ----------------------------------------------------------
-      // LOGIN FAILED
-      // ----------------------------------------------------------
 
       return {
         "success": false,
@@ -308,7 +229,13 @@ class AuthService {
   }
 
   // ============================================================
-  // REGISTER API
+  // NORMAL REGISTER API
+  //
+  // Used ONLY for:
+  // - consumer
+  // - merchant / hotel owner
+  //
+  // NOT used for influencer.
   // ============================================================
 
   static Future<Map<String, dynamic>> register({
@@ -322,7 +249,7 @@ class AuthService {
     try {
       final response = await http
           .post(
-            Uri.parse("$baseUrl/auth/register"),
+            Uri.parse("${baseUrl}auth/register"),
             headers: {
               "Content-Type": "application/json",
               "Accept": "application/json",
@@ -335,10 +262,6 @@ class AuthService {
             }),
           )
           .timeout(const Duration(seconds: 20));
-
-      // ----------------------------------------------------------
-      // DECODE RESPONSE
-      // ----------------------------------------------------------
 
       Map<String, dynamic> body;
 
@@ -354,10 +277,6 @@ class AuthService {
         return {"success": false, "message": "Invalid response from server."};
       }
 
-      // ----------------------------------------------------------
-      // REGISTRATION SUCCESS
-      // ----------------------------------------------------------
-
       if ((response.statusCode == 200 || response.statusCode == 201) &&
           body["status"] == true) {
         final data = body["data"];
@@ -369,10 +288,6 @@ class AuthService {
           };
         }
 
-        // --------------------------------------------------------
-        // USER
-        // --------------------------------------------------------
-
         final rawUser = data["user"];
 
         if (rawUser == null || rawUser is! Map) {
@@ -383,10 +298,6 @@ class AuthService {
         }
 
         final userData = Map<String, dynamic>.from(rawUser);
-
-        // --------------------------------------------------------
-        // TOKENS
-        // --------------------------------------------------------
 
         final rawTokens = data["tokens"];
 
@@ -410,24 +321,9 @@ class AuthService {
 
         _accessToken = accessToken;
 
-        // --------------------------------------------------------
-        // REFRESH TOKEN
-        // --------------------------------------------------------
-
         final refreshToken = tokenData["refresh_token"]?.toString();
 
-        // --------------------------------------------------------
-        // CREATE APP USER
-        // --------------------------------------------------------
-
         _currentUser = _userFromApi(userData, selectedRole: role);
-
-        // --------------------------------------------------------
-        // REGISTRATION CREATES AN ACTIVE SESSION
-        //
-        // This allows the user to go directly to the home feed
-        // after registration.
-        // --------------------------------------------------------
 
         _rememberMe = true;
 
@@ -443,20 +339,12 @@ class AuthService {
 
         await prefs.setString(_userKey, jsonEncode(_currentUser!.toJson()));
 
-        // --------------------------------------------------------
-        // SUCCESS
-        // --------------------------------------------------------
-
         return {
           "success": true,
           "message": body["message"]?.toString() ?? "Registration successful.",
           "user": _currentUser,
         };
       }
-
-      // ----------------------------------------------------------
-      // REGISTRATION FAILED
-      // ----------------------------------------------------------
 
       return {
         "success": false,
@@ -466,6 +354,119 @@ class AuthService {
       return {"success": false, "message": "Unable to connect to the server."};
     } catch (_) {
       return {"success": false, "message": "Unable to connect to the server."};
+    }
+  }
+
+  // ============================================================
+  // INFLUENCER REGISTRATION
+  //
+  // IMPORTANT:
+  // This is completely separate from auth/register.
+  //
+  // The CreatorApplicationScreen should call this API.
+  //
+  // Endpoint:
+  // POST /influencer/register
+  //
+  // It creates a PENDING influencer account.
+  // ============================================================
+
+  static Future<Map<String, dynamic>> registerInfluencer({
+    required String fullName,
+    required String email,
+    required String phone,
+    required String password,
+    required String confirmPassword,
+    required String bio,
+    required String category,
+    required bool termsAccepted,
+    String? instagram,
+    String? youtube,
+    String? tiktok,
+  }) async {
+    try {
+      final Map<String, dynamic> requestBody = {
+        "full_name": fullName,
+        "email": email,
+        "phone": phone,
+        "password": password,
+        "confirm_password": confirmPassword,
+        "bio": bio,
+        "category": category,
+        "terms_accepted": termsAccepted ? 1 : 0,
+      };
+
+      // Optional social links.
+      if (instagram != null && instagram.trim().isNotEmpty) {
+        requestBody["instagram"] = instagram.trim();
+      }
+
+      if (youtube != null && youtube.trim().isNotEmpty) {
+        requestBody["youtube"] = youtube.trim();
+      }
+
+      if (tiktok != null && tiktok.trim().isNotEmpty) {
+        requestBody["tiktok"] = tiktok.trim();
+      }
+
+      final response = await http
+          .post(
+            Uri.parse("${baseUrl}influencer/register"),
+            headers: {
+              "Content-Type": "application/json",
+              "Accept": "application/json",
+            },
+            body: jsonEncode(requestBody),
+          )
+          .timeout(const Duration(seconds: 20));
+
+      Map<String, dynamic> body;
+
+      try {
+        final decoded = jsonDecode(response.body);
+
+        if (decoded is Map<String, dynamic>) {
+          body = decoded;
+        } else {
+          return {"success": false, "message": "Invalid response from server."};
+        }
+      } catch (_) {
+        return {"success": false, "message": "Invalid response from server."};
+      }
+
+      // ========================================================
+      // SUCCESS
+      // ========================================================
+
+      if ((response.statusCode == 200 || response.statusCode == 201) &&
+          body["success"] == true) {
+        final data = body["data"];
+
+        return {
+          "success": true,
+          "message":
+              body["message"]?.toString() ??
+              "Registration successful! Your influencer account is pending admin approval.",
+          "data": data,
+        };
+      }
+
+      // ========================================================
+      // VALIDATION / API ERROR
+      // ========================================================
+
+      return {
+        "success": false,
+        "message": _extractErrorMessage(body["message"]),
+        "errors": body["errors"],
+      };
+    } on http.ClientException {
+      return {"success": false, "message": "Unable to connect to the server."};
+    } catch (_) {
+      return {
+        "success": false,
+        "message": "Unable to connect to the server. Please try again.",
+      };
     }
   }
 
@@ -480,16 +481,12 @@ class AuthService {
 
     String appRole;
 
-    // ------------------------------------------------------------
-    // Registration role has priority.
-    // ------------------------------------------------------------
-
+    // Registration role has priority ONLY for normal registration.
     if (selectedRole != null && selectedRole.isNotEmpty) {
       appRole = selectedRole;
     } else {
       switch (userType.toLowerCase()) {
-        case "merchant":
-        case "hotel_admin":
+        case "hotel_owner":
           appRole = "merchant";
           break;
 
@@ -498,8 +495,15 @@ class AuthService {
           appRole = "creator";
           break;
 
+        case "merchant":
+          appRole = "merchant";
+          break;
+
+        case "customer":
+        case "consumer":
         default:
           appRole = "consumer";
+          break;
       }
     }
 
@@ -529,7 +533,7 @@ class AuthService {
     try {
       final response = await http
           .get(
-            Uri.parse("$baseUrl/profiles?user_id=${_currentUser!.id}"),
+            Uri.parse("${baseUrl}profiles?user_id=${_currentUser!.id}"),
             headers: {
               "Accept": "application/json",
               "Authorization": "Bearer $_accessToken",
@@ -567,8 +571,6 @@ class AuthService {
 
   // ============================================================
   // LOGOUT
-  //
-  // This completely removes the saved session.
   // ============================================================
 
   static Future<void> logout() async {
@@ -626,6 +628,7 @@ class AuthService {
 
     return message.toString();
   }
+
   // ============================================================
   // FORGOT PASSWORD
   // ============================================================
@@ -635,7 +638,7 @@ class AuthService {
   }) async {
     try {
       final response = await http.post(
-        Uri.parse("$baseUrl/auth/forgot-password"),
+        Uri.parse("${baseUrl}auth/forgot-password"),
         headers: {
           "Content-Type": "application/json",
           "Accept": "application/json",
@@ -677,7 +680,7 @@ class AuthService {
   }) async {
     try {
       final response = await http.post(
-        Uri.parse("$baseUrl/auth/reset-password"),
+        Uri.parse("${baseUrl}auth/reset-password"),
         headers: {
           "Content-Type": "application/json",
           "Accept": "application/json",
