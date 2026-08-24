@@ -20,6 +20,7 @@ class AuthService {
   static const String _refreshTokenKey = "refresh_token";
   static const String _userKey = "current_user";
   static const String _rememberMeKey = "remember_me";
+  static const String _verifiedKey = "is_verified";
 
   // ============================================================
   // CURRENT USER
@@ -36,6 +37,37 @@ class AuthService {
   static String? _accessToken;
 
   static String? get accessToken => _accessToken;
+
+  // ============================================================
+  // VERIFICATION STATUS
+  // ============================================================
+
+  static bool _isVerified = false;
+
+  static bool get isVerified => _isVerified;
+
+  // ============================================================
+  // PENDING STATUS
+  //
+  // Only influencer/creator and merchant/hotel owner
+  // can be considered pending.
+  // ============================================================
+
+  static bool get isPending {
+    if (_currentUser == null) {
+      return false;
+    }
+
+    final currentRole = _currentUser!.role.toLowerCase();
+
+    final isRestrictedRole =
+        currentRole == "creator" ||
+        currentRole == "influencer" ||
+        currentRole == "merchant" ||
+        currentRole == "hotel_owner";
+
+    return isRestrictedRole && !_isVerified;
+  }
 
   // ============================================================
   // LOGIN STATUS
@@ -72,13 +104,32 @@ class AuthService {
 
     _rememberMe = prefs.getBool(_rememberMeKey) ?? false;
 
+    // ------------------------------------------------------------
+    // If remember me was not selected, don't restore old session.
+    // ------------------------------------------------------------
+
     if (!_rememberMe) {
       _accessToken = null;
       _currentUser = null;
+      _isVerified = false;
       return;
     }
 
+    // ------------------------------------------------------------
+    // RESTORE TOKEN
+    // ------------------------------------------------------------
+
     _accessToken = prefs.getString(_accessTokenKey);
+
+    // ------------------------------------------------------------
+    // RESTORE VERIFICATION
+    // ------------------------------------------------------------
+
+    _isVerified = prefs.getBool(_verifiedKey) ?? false;
+
+    // ------------------------------------------------------------
+    // RESTORE USER
+    // ------------------------------------------------------------
 
     final userJson = prefs.getString(_userKey);
 
@@ -96,18 +147,33 @@ class AuthService {
       }
     }
 
+    // ------------------------------------------------------------
+    // INVALID SESSION
+    // ------------------------------------------------------------
+
     if (_accessToken == null || _accessToken!.isEmpty || _currentUser == null) {
       _accessToken = null;
       _currentUser = null;
+      _isVerified = false;
 
       await prefs.remove(_accessTokenKey);
       await prefs.remove(_refreshTokenKey);
       await prefs.remove(_userKey);
+      await prefs.remove(_verifiedKey);
     }
   }
 
   // ============================================================
   // LOGIN API
+  //
+  // POST:
+  // https://booking.dalloltech.com/api/auth/login
+  //
+  // BODY:
+  // {
+  //   "phone": "...",
+  //   "password": "..."
+  // }
   // ============================================================
 
   static Future<Map<String, dynamic>> login({
@@ -127,6 +193,10 @@ class AuthService {
           )
           .timeout(const Duration(seconds: 20));
 
+      // ==========================================================
+      // DECODE RESPONSE
+      // ==========================================================
+
       Map<String, dynamic> body;
 
       try {
@@ -141,6 +211,10 @@ class AuthService {
         return {"success": false, "message": "Invalid response from server."};
       }
 
+      // ==========================================================
+      // LOGIN SUCCESS
+      // ==========================================================
+
       if (response.statusCode == 200 && body["status"] == true) {
         final data = body["data"];
 
@@ -150,6 +224,10 @@ class AuthService {
             "message": "Invalid login response from server.",
           };
         }
+
+        // ========================================================
+        // USER
+        // ========================================================
 
         final rawUser = data["user"];
 
@@ -161,6 +239,10 @@ class AuthService {
         }
 
         final userData = Map<String, dynamic>.from(rawUser);
+
+        // ========================================================
+        // TOKENS
+        // ========================================================
 
         final rawTokens = data["tokens"];
 
@@ -182,19 +264,74 @@ class AuthService {
           };
         }
 
-        _accessToken = accessToken;
-
         final refreshToken = tokenData["refresh_token"]?.toString();
 
-        // IMPORTANT:
-        // Login role comes from API user_type.
+        // ========================================================
+        // SAVE TOKEN IN MEMORY
+        // ========================================================
+
+        _accessToken = accessToken;
+
+        // ========================================================
+        // CONVERT USER
+        // ========================================================
+
         _currentUser = _userFromApi(userData);
+
+        // ========================================================
+        // READ API VERIFICATION STATUS
+        //
+        // API returns:
+        //
+        // "t"
+        // "f"
+        //
+        // We convert both safely.
+        // ========================================================
+
+        _isVerified = _parseBoolean(userData["is_verified"]);
+
+        // ========================================================
+        // ROLE
+        // ========================================================
+
+        final userType = userData["user_type"]?.toString().toLowerCase() ?? "";
+
+        // ========================================================
+        // DETERMINE WHETHER USER MUST GO TO PENDING SCREEN
+        //
+        // IMPORTANT:
+        //
+        // Customer with is_verified = false
+        // DOES NOT go to pending screen.
+        //
+        // Only influencer/creator and merchant/hotel_owner.
+        // ========================================================
+
+        final bool isInfluencer =
+            userType == "influencer" || userType == "creator";
+
+        final bool isMerchant =
+            userType == "merchant" || userType == "hotel_owner";
+
+        final bool pending = !_isVerified && (isInfluencer || isMerchant);
+
+        // ========================================================
+        // SAVE SESSION
+        // ========================================================
 
         _rememberMe = rememberMe;
 
         final prefs = await SharedPreferences.getInstance();
 
         await prefs.setBool(_rememberMeKey, rememberMe);
+
+        // --------------------------------------------------------
+        // IMPORTANT:
+        // Keep token in memory regardless of rememberMe.
+        //
+        // This allows the current login session to work.
+        // --------------------------------------------------------
 
         if (rememberMe) {
           await prefs.setString(_accessTokenKey, _accessToken!);
@@ -204,18 +341,48 @@ class AuthService {
           }
 
           await prefs.setString(_userKey, jsonEncode(_currentUser!.toJson()));
+
+          await prefs.setBool(_verifiedKey, _isVerified);
         } else {
+          // ------------------------------------------------------
+          // Don't persist session when Remember Me is false.
+          // But DO NOT clear the in-memory token.
+          // ------------------------------------------------------
+
           await prefs.remove(_accessTokenKey);
           await prefs.remove(_refreshTokenKey);
           await prefs.remove(_userKey);
+          await prefs.remove(_verifiedKey);
         }
+
+        // ========================================================
+        // RETURN LOGIN RESULT
+        // ========================================================
 
         return {
           "success": true,
+
           "message": body["message"]?.toString() ?? "Login successful.",
+
           "user": _currentUser,
+
+          "access_token": _accessToken,
+
+          "refresh_token": refreshToken,
+
+          "is_verified": _isVerified,
+
+          "pending": pending,
+
+          "role": _currentUser!.role,
+
+          "user_type": userType,
         };
       }
+
+      // ==========================================================
+      // LOGIN FAILED
+      // ==========================================================
 
       return {
         "success": false,
@@ -223,19 +390,45 @@ class AuthService {
       };
     } on http.ClientException {
       return {"success": false, "message": "Unable to connect to the server."};
-    } catch (_) {
+    } catch (e) {
       return {"success": false, "message": "Unable to connect to the server."};
     }
   }
 
   // ============================================================
+  // PARSE BOOLEAN
+  //
+  // Handles:
+  // true
+  // false
+  // "true"
+  // "false"
+  // "t"
+  // "f"
+  // 1
+  // 0
+  // ============================================================
+
+  static bool _parseBoolean(dynamic value) {
+    if (value == true) {
+      return true;
+    }
+
+    if (value == false) {
+      return false;
+    }
+
+    if (value is int) {
+      return value == 1;
+    }
+
+    final String valueString = value?.toString().trim().toLowerCase() ?? "";
+
+    return valueString == "true" || valueString == "t" || valueString == "1";
+  }
+
+  // ============================================================
   // NORMAL REGISTER API
-  //
-  // Used ONLY for:
-  // - consumer
-  // - merchant / hotel owner
-  //
-  // NOT used for influencer.
   // ============================================================
 
   static Future<Map<String, dynamic>> register({
@@ -259,6 +452,7 @@ class AuthService {
               "phone": phone,
               "email": email,
               "password": password,
+              "terms_accepted": termsAccepted ? 1 : 0,
             }),
           )
           .timeout(const Duration(seconds: 20));
@@ -325,6 +519,8 @@ class AuthService {
 
         _currentUser = _userFromApi(userData, selectedRole: role);
 
+        _isVerified = _parseBoolean(userData["is_verified"]);
+
         _rememberMe = true;
 
         final prefs = await SharedPreferences.getInstance();
@@ -339,10 +535,13 @@ class AuthService {
 
         await prefs.setString(_userKey, jsonEncode(_currentUser!.toJson()));
 
+        await prefs.setBool(_verifiedKey, _isVerified);
+
         return {
           "success": true,
           "message": body["message"]?.toString() ?? "Registration successful.",
           "user": _currentUser,
+          "is_verified": _isVerified,
         };
       }
 
@@ -359,16 +558,6 @@ class AuthService {
 
   // ============================================================
   // INFLUENCER REGISTRATION
-  //
-  // IMPORTANT:
-  // This is completely separate from auth/register.
-  //
-  // The CreatorApplicationScreen should call this API.
-  //
-  // Endpoint:
-  // POST /influencer/register
-  //
-  // It creates a PENDING influencer account.
   // ============================================================
 
   static Future<Map<String, dynamic>> registerInfluencer({
@@ -396,7 +585,6 @@ class AuthService {
         "terms_accepted": termsAccepted ? 1 : 0,
       };
 
-      // Optional social links.
       if (instagram != null && instagram.trim().isNotEmpty) {
         requestBody["instagram"] = instagram.trim();
       }
@@ -434,26 +622,16 @@ class AuthService {
         return {"success": false, "message": "Invalid response from server."};
       }
 
-      // ========================================================
-      // SUCCESS
-      // ========================================================
-
       if ((response.statusCode == 200 || response.statusCode == 201) &&
           body["success"] == true) {
-        final data = body["data"];
-
         return {
           "success": true,
           "message":
               body["message"]?.toString() ??
               "Registration successful! Your influencer account is pending admin approval.",
-          "data": data,
+          "data": body["data"],
         };
       }
-
-      // ========================================================
-      // VALIDATION / API ERROR
-      // ========================================================
 
       return {
         "success": false,
@@ -481,7 +659,6 @@ class AuthService {
 
     String appRole;
 
-    // Registration role has priority ONLY for normal registration.
     if (selectedRole != null && selectedRole.isNotEmpty) {
       appRole = selectedRole;
     } else {
@@ -515,7 +692,9 @@ class AuthService {
       password: "",
       role: appRole,
       profileImage:
-          data["avatar"]?.toString() ?? "assets/images/default_profile.jpg",
+          data["avatar"]?.toString() ??
+          data["profile_image"]?.toString() ??
+          "assets/images/default_profile.jpg",
       coverImage:
           data["cover_image"]?.toString() ?? "assets/images/default_cover.jpg",
     );
@@ -576,6 +755,7 @@ class AuthService {
   static Future<void> logout() async {
     _accessToken = null;
     _currentUser = null;
+    _isVerified = false;
     _rememberMe = false;
 
     final prefs = await SharedPreferences.getInstance();
@@ -584,6 +764,7 @@ class AuthService {
     await prefs.remove(_refreshTokenKey);
     await prefs.remove(_userKey);
     await prefs.remove(_rememberMeKey);
+    await prefs.remove(_verifiedKey);
   }
 
   // ============================================================

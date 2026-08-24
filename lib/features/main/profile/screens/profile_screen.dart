@@ -9,8 +9,6 @@ import '../widgets/profile_tab_bar.dart';
 import '../tabs/about_tab.dart';
 import '../tabs/favorites_tab.dart';
 import '../tabs/likes_tab.dart';
-
-import '../../profile/upgrade/consumer_upgrade_screen.dart';
 import '../../../auth/screens/login_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -95,21 +93,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         onLogin: () {},
 
                         // ==================================
-                        // UPGRADE
-                        // ==================================
-                        onUpgrade: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const ConsumerUpgradeScreen(),
-                            ),
-                          );
-                        },
-
-                        // ==================================
                         // LOGOUT
                         // ==================================
                         onLogout: logout,
+                        onUpgrade: () {},
                       ),
 
                       const ProfileStats(),
