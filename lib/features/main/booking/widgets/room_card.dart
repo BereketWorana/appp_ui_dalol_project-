@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
-
-import '../../../../../data/models/room.dart';
-import '../../../../../data/models/user.dart';
-
+import '../../../../data/models/room.dart';
+import '../../../../data/models/user.dart';
 import '../screens/booking_information_screen.dart';
 
 class RoomCard extends StatelessWidget {
-  final Room room;
-
+  final Room room;  // This is fine - it's from the imported room.dart
   final User hotel;
 
   const RoomCard({super.key, required this.room, required this.hotel});
@@ -16,73 +13,51 @@ class RoomCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
-
       decoration: BoxDecoration(
         color: const Color(0xFF181818),
-
         borderRadius: BorderRadius.circular(18),
-
         border: Border.all(color: Colors.white12),
       ),
-
       child: SizedBox(
         height: 155,
-
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
-
           children: [
-            // ==========================================
             // ROOM IMAGE
-            // ==========================================
             ClipRRect(
               borderRadius: const BorderRadius.horizontal(
                 left: Radius.circular(18),
               ),
-
               child: SizedBox(
                 width: 125,
-
-                child: Image.asset(room.image, fit: BoxFit.cover),
+                child: _buildRoomImage(),
               ),
             ),
 
-            // ==========================================
             // ROOM INFORMATION
-            // ==========================================
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 12,
                   vertical: 10,
                 ),
-
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-
                   children: [
-                    // ==================================
                     // ROOM TYPE
-                    // ==================================
                     Text(
                       room.roomType,
-
                       maxLines: 1,
-
                       overflow: TextOverflow.ellipsis,
-
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 17,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-
                     const SizedBox(height: 5),
 
-                    // ==================================
                     // CAPACITY
-                    // ==================================
                     Row(
                       children: [
                         const Icon(
@@ -90,12 +65,9 @@ class RoomCard extends StatelessWidget {
                           color: Colors.white60,
                           size: 16,
                         ),
-
                         const SizedBox(width: 4),
-
                         Text(
                           "${room.capacity} Guests",
-
                           style: const TextStyle(
                             color: Colors.white60,
                             fontSize: 12,
@@ -103,17 +75,13 @@ class RoomCard extends StatelessWidget {
                         ),
                       ],
                     ),
-
                     const SizedBox(height: 7),
 
-                    // ==================================
                     // FACILITIES
-                    // ==================================
                     Expanded(
                       child: Wrap(
                         spacing: 5,
                         runSpacing: 4,
-
                         children: room.facilities
                             .take(2)
                             .map(
@@ -122,16 +90,12 @@ class RoomCard extends StatelessWidget {
                                   horizontal: 7,
                                   vertical: 3,
                                 ),
-
                                 decoration: BoxDecoration(
                                   color: Colors.white10,
-
                                   borderRadius: BorderRadius.circular(10),
                                 ),
-
                                 child: Text(
                                   item,
-
                                   style: const TextStyle(
                                     color: Colors.white60,
                                     fontSize: 9,
@@ -143,33 +107,25 @@ class RoomCard extends StatelessWidget {
                       ),
                     ),
 
-                    // ==================================
                     // PRICE + SELECT
-                    // ==================================
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-
                       crossAxisAlignment: CrossAxisAlignment.end,
-
                       children: [
                         // PRICE
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
-
                           children: [
                             Text(
-                              "${room.pricePerNight} ETB",
-
+                              "${room.pricePerNight.toStringAsFixed(2)} ETB",
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 15,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-
                             const Text(
                               "per night",
-
                               style: TextStyle(
                                 color: Colors.white38,
                                 fontSize: 9,
@@ -183,7 +139,6 @@ class RoomCard extends StatelessWidget {
                           onPressed: () {
                             Navigator.push(
                               context,
-
                               MaterialPageRoute(
                                 builder: (_) => BookingInformationScreen(
                                   hotel: hotel,
@@ -192,26 +147,18 @@ class RoomCard extends StatelessWidget {
                               ),
                             );
                           },
-
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.white,
-
                             foregroundColor: Colors.black,
-
                             elevation: 0,
-
                             minimumSize: const Size(70, 34),
-
                             padding: const EdgeInsets.symmetric(horizontal: 12),
-
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(18),
                             ),
                           ),
-
                           child: const Text(
                             "Select",
-
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
@@ -225,6 +172,62 @@ class RoomCard extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // BUILD ROOM IMAGE WITH ERROR HANDLING
+  // ============================================================
+
+  Widget _buildRoomImage() {
+    final bool isNetworkImage = room.image.startsWith('http') ||
+        room.image.startsWith('https');
+
+    if (isNetworkImage) {
+      return Image.network(
+        room.image,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return _buildPlaceholderImage();
+        },
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return Container(
+            color: Colors.grey[800],
+            child: const Center(
+              child: SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white54,
+                ),
+              ),
+            ),
+          );
+        },
+      );
+    } else {
+      return Image.asset(
+        room.image,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return _buildPlaceholderImage();
+        },
+      );
+    }
+  }
+
+  Widget _buildPlaceholderImage() {
+    return Container(
+      color: Colors.grey[800],
+      child: const Center(
+        child: Icon(
+          Icons.bed,
+          color: Colors.white38,
+          size: 40,
         ),
       ),
     );
