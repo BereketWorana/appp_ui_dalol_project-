@@ -71,8 +71,6 @@ flutter:
     - assets/images/
     - assets/images/explore/
     - assets/videos/
-    - assets/icons/
-    - assets/animations/
     - assets/logo/google.png
     - assets/logo/facebook.png 
     - assets/data/

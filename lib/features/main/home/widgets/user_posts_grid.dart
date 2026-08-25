@@ -59,7 +59,6 @@ class _UserPostsGridState extends State<UserPostsGrid> {
       ),
       itemCount: userPosts.length,
       itemBuilder: (context, index) {
-        final post = userPosts[index];
         return GestureDetector(
           onTap: () {
             // Tap post thumbnail → go back to feed, scroll to this post

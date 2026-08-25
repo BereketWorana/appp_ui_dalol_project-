@@ -9,7 +9,6 @@ import 'comments_sheet.dart';
 import 'share_dialog.dart';
 import 'like_button.dart';
 import 'follow_button.dart';
-import '../../../../data/dummy/user_dummy.dart';
 import '../screens/profile_screen.dart';
 
 class RightActions extends StatefulWidget {
