@@ -58,10 +58,17 @@ class _PostCardState extends State<PostCard> with SingleTickerProviderStateMixin
     // Play video if paused
     videoKey.currentState?.playIfPaused();
     
-    // Actually like the post
-    final postActionsProvider = context.read<PostActionsProvider>();
+    // Only like — never unlike on double-tap (TikTok/IG behavior).
+    // Read live state from FeedProvider, not the stale widget.post snapshot.
     final feedProvider = context.read<FeedProvider>();
-    await postActionsProvider.toggleLike(context, widget.post.id, feedProvider);
+    final currentPost = feedProvider.posts.firstWhere(
+      (p) => p.id == widget.post.id,
+      orElse: () => widget.post,
+    );
+    if (!currentPost.isLiked) {
+      final postActionsProvider = context.read<PostActionsProvider>();
+      await postActionsProvider.toggleLike(context, widget.post.id, feedProvider);
+    }
 
     await Future.delayed(const Duration(milliseconds: 650));
     if (!mounted) return;
