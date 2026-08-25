@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../../../../data/models/user.dart';
+import '../../../../data/models/hotel.dart';
 import '../../booking/screens/hotel_details_screen.dart';
 
 class HotelCard extends StatelessWidget {
-  final User hotel;
+  final Hotel hotel;
 
   const HotelCard({super.key, required this.hotel});
 
@@ -45,7 +45,7 @@ class HotelCard extends StatelessWidget {
                 ),
 
                 child: Image.asset(
-                  hotel.coverImage,
+                  hotel.image,
 
                   height: 170,
 
@@ -90,7 +90,7 @@ class HotelCard extends StatelessWidget {
 
                 children: [
                   Text(
-                    hotel.fullName,
+                    hotel.name,
 
                     maxLines: 1,
 

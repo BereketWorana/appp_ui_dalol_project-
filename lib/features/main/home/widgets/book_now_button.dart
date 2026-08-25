@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../../data/dummy/user_dummy.dart';
+import '../../../../data/dummy/hotel_dummy.dart';
 import '../../booking/screens/hotel_details_screen.dart';
 
 class BookNowButton extends StatelessWidget {
@@ -16,8 +16,8 @@ class BookNowButton extends StatelessWidget {
     return GestureDetector(
       onTap: () {
         try {
-          final hotel = users.firstWhere(
-            (user) => user.id == hotelId, // Fallback if needed
+          final hotel = hotels.firstWhere(
+            (h) => h.id == hotelId, // Fallback if needed
           );
 
           Navigator.push(
@@ -43,7 +43,7 @@ class BookNowButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(22),
           boxShadow: [
             BoxShadow(
-              color: Colors.pink.withOpacity(0.4),
+              color: Colors.pink.withValues(alpha: 0.4),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),

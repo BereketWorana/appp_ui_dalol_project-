@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
-import '../../../../../data/models/user.dart';
+import '../../../../../data/models/hotel.dart';
 import '../../../../../data/models/room.dart';
 import '../../../../../core/services/auth_service.dart';
 
 import 'booking_success_screen.dart';
 
 class BookingInformationScreen extends StatefulWidget {
-  final User hotel;
+  final Hotel hotel;
 
   final Room room;
 
@@ -110,7 +110,7 @@ class _BookingInformationScreenState extends State<BookingInformationScreen> {
 
           children: [
             Text(
-              widget.hotel.fullName,
+              widget.hotel.name,
 
               style: const TextStyle(
                 color: Colors.white,

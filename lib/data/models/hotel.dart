@@ -1,4 +1,5 @@
 class Hotel {
+  final int id;
   final String name;
   final String image;
   final String video;
@@ -15,6 +16,7 @@ class Hotel {
   final int shares;
 
   const Hotel({
+    required this.id,
     required this.name,
     required this.image,
     required this.video,

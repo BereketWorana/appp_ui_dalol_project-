@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
-import '../../../../../data/models/user.dart';
+import '../../../../../data/models/hotel.dart';
 import '../../../../../data/dummy/room_dummy.dart';
 import '../../../../../data/models/room.dart';
 
 import '../widgets/room_card.dart';
 
 class HotelDetailScreen extends StatelessWidget {
-  final User hotel;
+  final Hotel hotel;
 
   const HotelDetailScreen({super.key, required this.hotel});
 
@@ -41,7 +41,7 @@ class HotelDetailScreen extends StatelessWidget {
                   fit: StackFit.expand,
 
                   children: [
-                    Image.asset(hotel.coverImage, fit: BoxFit.cover),
+                    Image.asset(hotel.image, fit: BoxFit.cover),
 
                     Container(
                       decoration: BoxDecoration(
@@ -71,7 +71,7 @@ class HotelDetailScreen extends StatelessWidget {
                       children: [
                         Expanded(
                           child: Text(
-                            hotel.fullName,
+                            hotel.name,
 
                             style: const TextStyle(
                               color: Colors.white,
@@ -128,7 +128,7 @@ class HotelDetailScreen extends StatelessWidget {
                     const SizedBox(height: 8),
 
                     Text(
-                      "${hotel.fullName} provides luxury rooms, premium services, restaurants and comfortable stays for travelers.",
+                      "${hotel.name} provides luxury rooms, premium services, restaurants and comfortable stays for travelers.",
 
                       style: const TextStyle(
                         color: Colors.white70,

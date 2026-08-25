@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 
 import '../../../../../data/models/room.dart';
-import '../../../../../data/models/user.dart';
+import '../../../../../data/models/hotel.dart';
 
 import '../screens/booking_information_screen.dart';
 
 class RoomCard extends StatelessWidget {
   final Room room;
 
-  final User hotel;
+  final Hotel hotel;
 
   const RoomCard({super.key, required this.room, required this.hotel});
 
