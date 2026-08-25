@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../data/models/video.dart';
 import '../../../../data/services/video_service.dart';
 
-import '../widgets/hotel_feed_item.dart';
+
 import 'menu_screen.dart';
 import 'notification.dart';
 
@@ -138,13 +138,7 @@ class _HomeScreenState extends State<HomeScreen>
                   onPageChanged: onPageChanged,
 
                   itemBuilder: (context, index) {
-                    return HotelFeedItem(
-                      key: ValueKey(videos[index].id),
-
-                      video: videos[index],
-
-                      isActive: index == currentIndex,
-                    );
+                    return const SizedBox.shrink();
                   },
                 ),
 
