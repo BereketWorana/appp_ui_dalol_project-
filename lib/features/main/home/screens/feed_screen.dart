@@ -5,6 +5,7 @@ import 'package:shimmer/shimmer.dart';
 import '../../../../data/models/post.dart';
 import '../providers/feed_provider.dart';
 import '../widgets/post_card.dart';
+import '../widgets/stories_section.dart';
 import 'menu_screen.dart';
 import 'notification.dart';
 
@@ -170,9 +171,24 @@ class _FeedScreenState extends State<FeedScreen>
                 ),
 
                 // ================================================
-                // TOP ACTION BAR
+                // TOP OVERLAYS
                 // ================================================
-                _TopBar(),
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // TOP ACTION BAR
+                      _TopBar(),
+
+                      // STORIES ROW (Only visible on first post)
+                      if (_currentIndex == 0)
+                        const StoriesSection(),
+                    ],
+                  ),
+                ),
               ],
             ),
           );
