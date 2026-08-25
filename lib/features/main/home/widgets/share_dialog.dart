@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import '../../../../data/services/post_service.dart';
+import '../providers/feed_provider.dart';
 
 class ShareDialog extends StatelessWidget {
   final int postId;
@@ -13,6 +15,9 @@ class ShareDialog extends StatelessWidget {
     await PostService.sharePost(postId);
     
     if (!context.mounted) return;
+
+    // Optimistically update share count in feed UI
+    context.read<FeedProvider>().incrementShareCount(postId);
     
     if (platform == 'Copy') {
       await Clipboard.setData(ClipboardData(text: 'https://superplatform.com/post/$postId'));
@@ -63,7 +68,7 @@ class ShareDialog extends StatelessWidget {
               children: [
                 _ShareItem(icon: Icons.chat, title: "WhatsApp", onTap: () => _shareAction(context, "WhatsApp")),
                 _ShareItem(icon: Icons.camera_alt, title: "Instagram", onTap: () => _shareAction(context, "Instagram")),
-                _ShareItem(icon: Icons.telegram, title: "Telegram", onTap: () => _shareAction(context, "Telegram")),
+                _ShareItem(icon: Icons.facebook, title: "Facebook", onTap: () => _shareAction(context, "Facebook")),
                 _ShareItem(icon: Icons.alternate_email, title: "Twitter", onTap: () => _shareAction(context, "Twitter")),
                 _ShareItem(icon: Icons.copy, title: "Copy", onTap: () => _shareAction(context, "Copy")),
                 _ShareItem(icon: Icons.more_horiz, title: "More", onTap: () => _shareAction(context, "More")),

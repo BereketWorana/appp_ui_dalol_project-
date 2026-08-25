@@ -187,4 +187,17 @@ class FeedProvider extends ChangeNotifier {
     );
     notifyListeners();
   }
+
+  // ============================================================
+  // UPDATE SHARE COUNT
+  // ============================================================
+
+  void incrementShareCount(int postId) {
+    final index = _posts.indexWhere((p) => p.id == postId);
+    if (index == -1) return;
+
+    final post = _posts[index];
+    _posts[index] = post.copyWith(shares: post.shares + 1);
+    notifyListeners();
+  }
 }

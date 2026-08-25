@@ -27,7 +27,7 @@ class FollowButton extends StatelessWidget {
             width: 22,
             height: 22,
             decoration: BoxDecoration(
-              color: isFollowing ? Colors.green : Colors.red,
+              color: isFollowing ? Colors.grey.shade600 : Colors.pink.shade500,
               shape: BoxShape.circle,
               border: Border.all(color: Colors.white, width: 1.5),
             ),
