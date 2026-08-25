@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import '../models/comment.dart';
 import '../models/post.dart';
 
@@ -75,6 +74,8 @@ class PostService {
     // Simulate network delay
     await Future.delayed(const Duration(milliseconds: 500));
     return true;
+  }
+
   /// Fetches posts for a specific user.
   static Future<List<Post>> getUserPosts(int userId) async {
     // Simulate network delay
@@ -87,8 +88,13 @@ class PostService {
         ownerId: userId,
         ownerName: 'User Name',
         ownerAvatar: 'assets/images/r1.jpg',
+        ownerRole: 'consumer',
+        ownerUsername: '@username',
         mediaUrl: 'assets/videos/v2.mp4',
+        mediaType: 'video',
+        thumbnail: 'assets/images/r1.jpg',
         caption: 'My first post',
+        hashtags: ['first'],
         likes: 120,
         comments: 5,
         shares: 2,
@@ -98,8 +104,6 @@ class PostService {
         price: 3500,
         isLiked: false,
         isFollowing: false,
-        isMerchant: false,
-        hasHotelLink: false,
         createdAt: DateTime.now(),
       ),
       Post(
@@ -107,8 +111,13 @@ class PostService {
         ownerId: userId,
         ownerName: 'User Name',
         ownerAvatar: 'assets/images/r1.jpg',
+        ownerRole: 'merchant',
+        ownerUsername: '@username',
         mediaUrl: 'assets/videos/v3.mp4',
+        mediaType: 'video',
+        thumbnail: 'assets/images/r1.jpg',
         caption: 'Another beautiful day',
+        hashtags: ['beautiful'],
         likes: 85,
         comments: 12,
         shares: 4,
@@ -118,8 +127,6 @@ class PostService {
         price: 5000,
         isLiked: false,
         isFollowing: false,
-        isMerchant: true,
-        hasHotelLink: true,
         hotelId: 2,
         createdAt: DateTime.now().subtract(const Duration(days: 1)),
       ),
