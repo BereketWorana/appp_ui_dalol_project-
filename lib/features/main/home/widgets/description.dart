@@ -1,43 +1,37 @@
 import 'package:flutter/material.dart';
 
-import '../../../../data/models/video.dart';
-import '../../../../data/dummy/user_dummy.dart';
-import '../../booking/screens/hotel_details_screen.dart';
+import '../../../../data/models/post.dart';
+import 'book_now_button.dart';
 
 class Description extends StatelessWidget {
-  final Video video;
+  final Post post;
 
-  const Description({super.key, required this.video});
+  const Description({super.key, required this.post});
 
   @override
   Widget build(BuildContext context) {
     // ==========================================
-    // CHECK IF VIDEO SUPPORTS BOOKING
+    // CHECK IF POST SUPPORTS BOOKING
     // ==========================================
 
-    final bool canBook =
-        video.ownerType == "merchant" || video.ownerType == "creator";
+    final bool canBook = post.hasHotelLink;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-
       children: [
         // ==========================================
         // OWNER NAME + BOOK BUTTON
         // ==========================================
         Row(
           crossAxisAlignment: CrossAxisAlignment.center,
-
           children: [
             Expanded(
               child: Row(
                 children: [
                   Flexible(
                     child: Text(
-                      video.ownerName,
-
+                      post.ownerName,
                       overflow: TextOverflow.ellipsis,
-
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 20,
@@ -47,10 +41,9 @@ class Description extends StatelessWidget {
                   ),
 
                   // Verified badge for merchants
-                  if (video.ownerType == "merchant")
+                  if (post.isMerchant)
                     const Padding(
                       padding: EdgeInsets.only(left: 5),
-
                       child: Icon(Icons.verified, color: Colors.blue, size: 18),
                     ),
                 ],
@@ -59,72 +52,23 @@ class Description extends StatelessWidget {
 
             // ==========================================
             // BOOK BUTTON
-            // Creator + Merchant
             // ==========================================
             if (canBook)
-              ElevatedButton(
-                onPressed: () {
-                  try {
-                    final hotel = users.firstWhere(
-                      (user) => user.id == video.ownerId,
-                    );
-
-                    Navigator.push(
-                      context,
-
-                      MaterialPageRoute(
-                        builder: (_) => HotelDetailScreen(hotel: hotel),
-                      ),
-                    );
-                  } catch (e) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text("Hotel information is not available."),
-                      ),
-                    );
-                  }
-                },
-
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-
-                  foregroundColor: Colors.black,
-
-                  elevation: 2,
-
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 30,
-                    vertical: 8,
-                  ),
-
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(22),
-                  ),
-                ),
-
-                child: const Text(
-                  "Book",
-
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-                ),
-              ),
+              BookNowButton(hotelId: post.hotelId ?? post.ownerId),
           ],
         ),
 
         const SizedBox(height: 8),
 
         // ==========================================
-        // VIDEO DESCRIPTION
+        // POST DESCRIPTION
         // ==========================================
         const SizedBox(height: 6),
 
         Text(
-          video.description,
-
+          post.caption,
           maxLines: 2,
-
           overflow: TextOverflow.ellipsis,
-
           style: const TextStyle(
             color: Colors.white70,
             fontSize: 13,

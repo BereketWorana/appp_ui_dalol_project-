@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
-import '../home/screens/home_screen.dart';
+import '../home/screens/feed_screen.dart';
+import '../home/providers/feed_provider.dart';
+import '../home/providers/post_actions_provider.dart';
 import '../explore/screens/explore_screen.dart';
 import '../messages/screens/messages_screen.dart';
 import '../profile/screens/profile_screen.dart';
@@ -37,12 +40,18 @@ class _ConsumerMainScreenState extends State<ConsumerMainScreen> {
   void initState() {
     super.initState();
 
-    screens = const [
-      HomeScreen(),
-      ExploreScreen(),
-      SizedBox(),
-      MessagesScreen(),
-      ProfileScreen(),
+    screens = [
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider(create: (_) => FeedProvider()),
+          ChangeNotifierProvider(create: (_) => PostActionsProvider()),
+        ],
+        child: const FeedScreen(),
+      ),
+      const ExploreScreen(),
+      const SizedBox(),
+      const MessagesScreen(),
+      const ProfileScreen(),
     ];
   }
 
