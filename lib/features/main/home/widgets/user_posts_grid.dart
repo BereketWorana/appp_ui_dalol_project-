@@ -59,19 +59,21 @@ class _UserPostsGridState extends State<UserPostsGrid> {
       ),
       itemCount: userPosts.length,
       itemBuilder: (context, index) {
+        final post = userPosts[index];
         return GestureDetector(
           onTap: () {
             // Tap post thumbnail → go back to feed, scroll to this post
             // Or navigate to post detail screen
           },
           child: Container(
+            clipBehavior: Clip.antiAlias,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(8),
               color: Colors.grey.shade900,
             ),
-            // Normally use thumbnail or mediaUrl to display the image.
-            // Since our mock uses videos, we can just show an icon or a placeholder if it's not an image
-            child: const Icon(Icons.video_collection, color: Colors.white54),
+            child: post.thumbnail.isNotEmpty
+                ? Image.asset(post.thumbnail, fit: BoxFit.cover)
+                : const Icon(Icons.video_collection, color: Colors.white54),
           ),
         );
       },

@@ -9,7 +9,7 @@ import 'comments_sheet.dart';
 import 'share_dialog.dart';
 import 'like_button.dart';
 import 'follow_button.dart';
-import '../screens/profile_screen.dart';
+import '../../profile/screens/profile_screen.dart';
 
 class RightActions extends StatefulWidget {
   final Post post;
@@ -63,8 +63,6 @@ class _RightActionsState extends State<RightActions> {
               MaterialPageRoute(
                 builder: (_) => ProfileScreen(
                   userId: widget.post.ownerId,
-                  userName: widget.post.ownerName,
-                  userAvatar: widget.post.ownerAvatar,
                 ),
               ),
             );

@@ -10,8 +10,8 @@ class ProfileHeader extends StatelessWidget {
   final bool isConsumer;
 
   final VoidCallback onLogin;
-  final VoidCallback onLogout;
-  final VoidCallback onUpgrade;
+  final VoidCallback? onLogout;
+  final VoidCallback? onUpgrade;
 
   const ProfileHeader({
     super.key,
@@ -124,7 +124,7 @@ class ProfileHeader extends StatelessWidget {
               else
                 Column(
                   children: [
-                    if (isConsumer)
+                    if (isConsumer && onUpgrade != null)
                       SizedBox(
                         width: 120,
                         child: ElevatedButton.icon(
@@ -142,12 +142,13 @@ class ProfileHeader extends StatelessWidget {
                         ),
                       ),
 
-                    if (isConsumer) const SizedBox(height: 10),
+                    if (isConsumer && onUpgrade != null) const SizedBox(height: 10),
 
-                    SizedBox(
-                      width: 120,
-                      child: ElevatedButton.icon(
-                        onPressed: onLogout,
+                    if (onLogout != null)
+                      SizedBox(
+                        width: 120,
+                        child: ElevatedButton.icon(
+                          onPressed: onLogout,
                         icon: const Icon(Icons.logout, size: 18),
                         label: const Text("Logout"),
                         style: ElevatedButton.styleFrom(
