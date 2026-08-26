@@ -121,37 +121,65 @@ class Post {
   });
 
   // ============================================================
+  // SAFE PARSING HELPERS
+  // ============================================================
+
+  static int _toInt(dynamic value, [int fallback = 0]) {
+    if (value == null) return fallback;
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value) ?? fallback;
+    return fallback;
+  }
+
+  static int? _toIntOrNull(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value);
+    return null;
+  }
+
+  static double? _toDoubleOrNull(dynamic value) {
+    if (value == null) return null;
+    if (value is double) return value;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
+  }
+
+  // ============================================================
   // FROM JSON (API response)
   // ============================================================
 
   factory Post.fromJson(Map<String, dynamic> json) {
     return Post(
-      id: json['id'] as int,
-      ownerId: json['ownerId'] as int,
-      ownerName: json['ownerName'] as String? ?? '',
-      ownerAvatar: json['ownerAvatar'] as String? ?? '',
-      ownerRole: json['ownerRole'] as String? ?? 'consumer',
-      ownerUsername: json['ownerUsername'] as String? ?? '',
-      hotelId: json['hotelId'] as int?,
-      mediaUrl: json['mediaUrl'] as String? ?? '',
-      mediaType: json['mediaType'] as String? ?? 'video',
-      thumbnail: json['thumbnail'] as String? ?? '',
-      caption: json['caption'] as String? ?? '',
+      id: _toInt(json['id']),
+      ownerId: _toInt(json['ownerId']),
+      ownerName: json['ownerName']?.toString() ?? '',
+      ownerAvatar: json['ownerAvatar']?.toString() ?? '',
+      ownerRole: json['ownerRole']?.toString() ?? 'consumer',
+      ownerUsername: json['ownerUsername']?.toString() ?? '',
+      hotelId: _toIntOrNull(json['hotelId']),
+      mediaUrl: json['mediaUrl']?.toString() ?? '',
+      mediaType: json['mediaType']?.toString() ?? 'video',
+      thumbnail: json['thumbnail']?.toString() ?? '',
+      caption: json['caption']?.toString() ?? '',
       hashtags: (json['hashtags'] as List<dynamic>?)
               ?.map((e) => e.toString())
               .toList() ??
           [],
-      location: json['location'] as String?,
-      price: (json['price'] as num?)?.toDouble(),
-      rating: (json['rating'] as num?)?.toDouble(),
-      likes: json['likes'] as int? ?? 0,
-      comments: json['comments'] as int? ?? 0,
-      shares: json['shares'] as int? ?? 0,
-      bookmarks: json['bookmarks'] as int? ?? 0,
-      isLiked: json['isLiked'] as bool? ?? false,
-      isFollowing: json['isFollowing'] as bool? ?? false,
+      location: json['location']?.toString(),
+      price: _toDoubleOrNull(json['price']),
+      rating: _toDoubleOrNull(json['rating']),
+      likes: _toInt(json['likes']),
+      comments: _toInt(json['comments']),
+      shares: _toInt(json['shares']),
+      bookmarks: _toInt(json['bookmarks']),
+      isLiked: json['isLiked'] == true || json['isLiked'] == 1 || json['isLiked'] == "1",
+      isFollowing: json['isFollowing'] == true || json['isFollowing'] == 1 || json['isFollowing'] == "1",
       createdAt: json['createdAt'] != null
-          ? DateTime.tryParse(json['createdAt']) ?? DateTime.now()
+          ? DateTime.tryParse(json['createdAt'].toString()) ?? DateTime.now()
           : DateTime.now(),
     );
   }
@@ -203,3 +231,4 @@ class Post {
   bool get hasHotelLink => hotelId != null;
   bool get isVideo => mediaType == 'video';
 }
+

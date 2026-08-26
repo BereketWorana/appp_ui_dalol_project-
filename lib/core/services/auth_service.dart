@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
@@ -511,9 +512,9 @@ class AuthService {
       password: "",
       role: appRole,
       profileImage:
-          data["avatar"]?.toString() ?? "assets/images/default_profile.jpg",
+          data["avatar"]?.toString() ?? "assets/images/r1.jpg",
       coverImage:
-          data["cover_image"]?.toString() ?? "assets/images/default_cover.jpg",
+          data["cover_image"]?.toString() ?? "assets/images/r2.jpg",
     );
   }
 

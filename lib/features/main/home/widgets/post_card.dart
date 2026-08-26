@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../data/models/post.dart';
+import '../../../../data/services/post_service.dart';
 import '../providers/post_actions_provider.dart';
 import '../providers/feed_provider.dart';
 import 'hotel_video_player.dart';
@@ -31,8 +32,19 @@ class _PostCardState extends State<PostCard> with SingleTickerProviderStateMixin
   late Animation<double> heartScale;
 
   @override
+  void didUpdateWidget(PostCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isActive && !oldWidget.isActive) {
+      PostService.trackView(widget.post.id);
+    }
+  }
+
+  @override
   void initState() {
     super.initState();
+    if (widget.isActive) {
+      PostService.trackView(widget.post.id);
+    }
     heartController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 350),

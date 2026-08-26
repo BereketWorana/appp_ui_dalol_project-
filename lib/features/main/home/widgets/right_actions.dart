@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../../../data/models/post.dart';
 import '../providers/post_actions_provider.dart';
+import '../providers/feed_provider.dart';
 
 import 'comments_sheet.dart';
 import 'share_dialog.dart';
@@ -111,12 +112,16 @@ class _RightActionsState extends State<RightActions> {
           color: Colors.white,
           count: widget.post.comments.toString(),
           onTap: () {
+            final feedProvider = context.read<FeedProvider>();
             showModalBottomSheet(
               context: context,
               isScrollControlled: true,
               backgroundColor: Colors.transparent,
               builder: (_) {
-                return CommentsSheet(postId: widget.post.id);
+                return ChangeNotifierProvider.value(
+                  value: feedProvider,
+                  child: CommentsSheet(postId: widget.post.id),
+                );
               },
             );
           },
@@ -126,16 +131,16 @@ class _RightActionsState extends State<RightActions> {
 
         // SHARE BUTTON
         _ActionButton(
-          icon: Icons.ios_share_sharp,
+          icon: Icons.send_outlined,
           color: Colors.white,
           count: widget.post.shares.toString(),
           onTap: () {
             showModalBottomSheet(
               context: context,
               isScrollControlled: true,
-              backgroundColor: Colors.white,
+              backgroundColor: Colors.transparent,
               shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
               ),
               builder: (_) {
                 return ShareDialog(postId: widget.post.id);

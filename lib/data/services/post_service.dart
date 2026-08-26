@@ -1,72 +1,144 @@
+import 'dart:convert';
+import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
+
+import '../../core/services/auth_service.dart';
 import '../models/comment.dart';
 import '../models/post.dart';
 
 class PostService {
-  /// Toggles like status for a post.
-  /// Throws an exception for testing if [postId] == 999.
-  static Future<bool> toggleLike(int postId) async {
-    // Simulate network delay
-    await Future.delayed(const Duration(milliseconds: 500));
+  static const String _baseUrl = 'https://booking.dalloltech.com';
 
-    // Hardcoded failure test case
-    if (postId == 999) {
-      throw Exception('Like failed - test case');
+  static Future<Map<String, String>> _headers() async {
+    final token = AuthService.accessToken;
+    
+    return {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
+    };
+  }
+
+  /// Toggles like status for a post.
+  static Future<bool> toggleLike(int postId) async {
+    final uri = Uri.parse('$_baseUrl/api/posts/like');
+    debugPrint('POST $uri');
+
+    final response = await http
+        .post(
+          uri,
+          headers: await _headers(),
+          body: json.encode({
+            'post_id': postId,
+            'user_id': AuthService.currentUser?.id ?? 0,
+          }),
+        )
+        .timeout(const Duration(seconds: 10));
+
+    debugPrint('Response: ${response.statusCode}');
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return true;
     }
 
-    // Return true for success (mock)
-    return true;
+    throw Exception('Failed to toggle like: ${response.statusCode}');
   }
 
   /// Submits a comment to a post.
-  /// Returns a mock Comment object.
   static Future<Comment> submitComment(int postId, String text) async {
-    // Simulate network delay
-    await Future.delayed(const Duration(milliseconds: 500));
-    
-    // Simulate error for testing
-    if (postId == 999) {
-      throw Exception('Comment submission failed - test case');
+    final uri = Uri.parse('$_baseUrl/api/posts/comment');
+    debugPrint('POST $uri');
+
+    final response = await http
+        .post(
+          uri,
+          headers: await _headers(),
+          body: json.encode({
+            'post_id': postId,
+            'user_id': AuthService.currentUser?.id ?? 0,
+            'comment': text,
+          }),
+        )
+        .timeout(const Duration(seconds: 10));
+
+    debugPrint('Response: ${response.statusCode}');
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      try {
+        final body = json.decode(response.body) as Map<String, dynamic>;
+        if (body.containsKey('comment') && body['comment'] != null) {
+          return Comment.fromJson(body['comment'] as Map<String, dynamic>);
+        }
+        return Comment(
+          id: body['id'] as int? ?? DateTime.now().millisecondsSinceEpoch,
+          postId: postId,
+          userId: 1,
+          userName: 'Current User',
+          userAvatar: 'assets/images/r1.jpg',
+          text: text,
+          createdAt: DateTime.now(),
+        );
+      } catch (e) {
+        debugPrint('Error parsing comment response: $e');
+        return Comment(
+          id: DateTime.now().millisecondsSinceEpoch,
+          postId: postId,
+          userId: 1,
+          userName: 'Current User',
+          userAvatar: 'assets/images/r1.jpg',
+          text: text,
+          createdAt: DateTime.now(),
+        );
+      }
     }
 
-    return Comment(
-      id: DateTime.now().millisecondsSinceEpoch, // mock ID
-      postId: postId,
-      userId: 1, // mock current user ID
-      userName: 'Current User',
-      userAvatar: 'assets/images/r1.jpg',
-      text: text,
-      createdAt: DateTime.now(),
-    );
+    throw Exception('Failed to submit comment: ${response.statusCode}');
   }
   
   /// Fetches comments for a post.
-  static Future<List<Comment>> getComments(int postId, {int offset = 0, int limit = 20}) async {
-    // Simulate network delay
-    await Future.delayed(const Duration(milliseconds: 500));
-    
-    if (offset > 0) return []; // No more comments for mock
-    
-    // Return a few mock comments if it's the first page
-    return [
-      Comment(
-        id: 1,
-        postId: postId,
-        userId: 2,
-        userName: 'Abebe B.',
-        userAvatar: 'assets/images/r2.jpg',
-        text: 'This looks amazing! 🔥',
-        createdAt: DateTime.now().subtract(const Duration(hours: 1)),
-      ),
-      Comment(
-        id: 2,
-        postId: postId,
-        userId: 3,
-        userName: 'Sara W.',
-        userAvatar: 'assets/images/r4.jpg',
-        text: 'How much is it per night?',
-        createdAt: DateTime.now().subtract(const Duration(minutes: 30)),
-      ),
-    ];
+  static Future<List<Comment>> getComments(int postId, {int offset = 0, int limit = 50}) async {
+    try {
+      final uri = Uri.parse('$_baseUrl/api/posts/comments/$postId?limit=$limit&offset=$offset');
+      debugPrint('GET $uri');
+
+      final response = await http
+          .get(uri, headers: await _headers())
+          .timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final body = json.decode(response.body) as Map<String, dynamic>;
+        if (body['success'] == true && body['data'] != null) {
+          final rawList = body['data'] as List<dynamic>;
+          return rawList
+              .map((c) => Comment.fromJson(c as Map<String, dynamic>))
+              .toList();
+        }
+      }
+      return []; // Return empty list instead of throwing on failure
+    } catch (e) {
+      debugPrint('Failed to fetch comments: $e');
+      return [];
+    }
+  }
+
+  /// Tracks when a post becomes visible.
+  /// Fire-and-forget: never awaited, never blocks the UI.
+  static void trackView(int postId) {
+    final uri = Uri.parse('$_baseUrl/api/posts/view');
+    _headers().then((headers) {
+      http
+          .post(
+            uri,
+            headers: headers,
+            body: json.encode({'post_id': postId}),
+          )
+          .catchError((e) {
+            debugPrint('trackView failed for post $postId: $e');
+            return http.Response('', 500);
+          });
+    }).catchError((e) {
+      debugPrint('trackView header error for post $postId: $e');
+    });
   }
 
   /// Shares a post.

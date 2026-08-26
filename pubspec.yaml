@@ -75,6 +75,12 @@ flutter:
     - assets/logo/facebook.png 
     - assets/data/
     - assets/rooms/
+    - assets/videos/hotel1.mp4
+    - assets/videos/hotel2.mp4
+    - assets/videos/hotel3.mp4
+    - assets/videos/hotel4.mp4
+    - assets/videos/hotel5.mp4
+    - assets/videos/hotel6.mp4
 
   # To add assets to your application, add an assets section, like this:
   # assets:

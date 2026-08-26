@@ -94,7 +94,7 @@ class PostActionsProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      await FollowService.toggleFollow(userId);
+      await FollowService.toggleFollow(userId, isFollowing: !currentlyFollowing);
     } catch (e) {
       // ROLLBACK ON FAILURE
       if (currentlyFollowing) {
