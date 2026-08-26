@@ -20,26 +20,8 @@ class FollowService {
   /// Issues DELETE to /api/unfollow/{id} if [isFollowing] is false,
   /// otherwise issues POST to /api/follow/{id}.
   static Future<bool> toggleFollow(int userId, {bool? isFollowing}) async {
-    final isUnfollow = isFollowing == false;
-    final path = isUnfollow ? '/api/unfollow/$userId' : '/api/follow/$userId';
-    final uri = Uri.parse('$_baseUrl$path');
-    
-    debugPrint('${isUnfollow ? "DELETE" : "POST"} $uri');
-
-    final response = isUnfollow
-        ? await http
-            .delete(uri, headers: await _headers())
-            .timeout(const Duration(seconds: 10))
-        : await http
-            .post(uri, headers: await _headers())
-            .timeout(const Duration(seconds: 10));
-
-    debugPrint('Response: ${response.statusCode}');
-
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      return true;
-    }
-
-    throw Exception('Failed to update follow status: ${response.statusCode}');
+    // MOCK SUCCESS FOR DEMO (Backend API is not ready)
+    await Future.delayed(const Duration(milliseconds: 500));
+    return true;
   }
 }
