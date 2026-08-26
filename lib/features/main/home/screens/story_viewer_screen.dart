@@ -55,17 +55,26 @@ class _StoryViewerScreenState extends State<StoryViewerScreen> with SingleTicker
     }
 
     final story = widget.stories[currentIndex];
-    
+
     if (story.mediaType == 'video') {
-      _videoController = VideoPlayerController.asset(story.mediaUrl)
-        ..initialize().then((_) {
-          if (mounted) {
-            setState(() {});
-            _videoController!.play();
-            _animController.duration = _videoController!.value.duration;
-            _animController.forward();
-          }
-        });
+      _videoController = VideoPlayerController.asset(story.mediaUrl);
+      _videoController!.initialize().then((_) {
+        if (mounted) {
+          setState(() {});
+          _videoController!.play();
+          _animController.duration = _videoController!.value.duration;
+          _animController.forward();
+        }
+      }).catchError((error) {
+        if (!error.toString().contains('UnimplementedError')) {
+          debugPrint('Story video player error: $error');
+        }
+        if (mounted) {
+          setState(() {});
+          _animController.duration = const Duration(seconds: 5);
+          _animController.forward();
+        }
+      });
     } else {
       _animController.duration = const Duration(seconds: 5);
       _animController.forward();
