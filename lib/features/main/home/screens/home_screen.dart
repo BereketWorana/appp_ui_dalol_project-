@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../data/models/video.dart';
 import '../../../../data/services/video_service.dart';
 
-
+import '../widgets/vedio_feed.dart';
 import 'menu_screen.dart';
 import 'notification.dart';
 
@@ -26,7 +26,7 @@ class _HomeScreenState extends State<HomeScreen>
   // VIDEOS
   // ============================================================
 
-  List<Video> videos = [];
+  List<Video> videos = <Video>[];
 
   bool loading = true;
 
@@ -39,7 +39,7 @@ class _HomeScreenState extends State<HomeScreen>
   int currentIndex = 0;
 
   // ============================================================
-  // KEEP HOME ALIVE
+  // KEEP SCREEN ALIVE
   // ============================================================
 
   @override
@@ -53,7 +53,7 @@ class _HomeScreenState extends State<HomeScreen>
   void initState() {
     super.initState();
 
-    pageController = PageController(initialPage: 0);
+    pageController = PageController();
 
     loadVideos();
   }
@@ -63,17 +63,33 @@ class _HomeScreenState extends State<HomeScreen>
   // ============================================================
 
   Future<void> loadVideos() async {
+    if (mounted) {
+      setState(() {
+        loading = true;
+        error = null;
+      });
+    }
+
     try {
-      final result = await VideoService.getVideos();
+      final result = await VideoService.getVideos(
+        userId: 24,
+        limit: 20,
+        offset: 0,
+        accessToken: "YOUR_REAL_ACCESS_TOKEN",
+      );
 
       if (!mounted) return;
 
       setState(() {
         videos = result;
         loading = false;
+        currentIndex = 0;
       });
     } catch (e) {
-      debugPrint('Video loading error: $e');
+      debugPrint("================================");
+      debugPrint("VIDEO FEED ERROR");
+      debugPrint(e.toString());
+      debugPrint("================================");
 
       if (!mounted) return;
 
@@ -104,112 +120,178 @@ class _HomeScreenState extends State<HomeScreen>
   Widget build(BuildContext context) {
     super.build(context);
 
-    return Scaffold(
-      backgroundColor: Colors.black,
+    return Scaffold(backgroundColor: Colors.black, body: _buildBody());
+  }
 
-      body: loading
-          ? const Center(child: CircularProgressIndicator(color: Colors.white))
-          : error != null
-          ? Center(
-              child: Text(error!, style: const TextStyle(color: Colors.white)),
-            )
-          : videos.isEmpty
-          ? const Center(
-              child: Text(
-                "No videos available",
-                style: TextStyle(color: Colors.white),
+  // ============================================================
+  // BODY
+  // ============================================================
+
+  Widget _buildBody() {
+    // ----------------------------------------------------------
+    // LOADING
+    // ----------------------------------------------------------
+
+    if (loading) {
+      return const Center(
+        child: CircularProgressIndicator(color: Colors.white),
+      );
+    }
+
+    // ----------------------------------------------------------
+    // ERROR
+    // ----------------------------------------------------------
+
+    if (error != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(30),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.error_outline, color: Colors.white, size: 50),
+
+              const SizedBox(height: 15),
+
+              Text(
+                error!,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.white, fontSize: 16),
               ),
-            )
-          : Stack(
+
+              const SizedBox(height: 20),
+
+              ElevatedButton(onPressed: loadVideos, child: const Text("Retry")),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // ----------------------------------------------------------
+    // EMPTY
+    // ----------------------------------------------------------
+
+    if (videos.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.video_library_outlined,
+              color: Colors.white54,
+              size: 60,
+            ),
+
+            const SizedBox(height: 15),
+
+            const Text(
+              "No videos available",
+              style: TextStyle(color: Colors.white, fontSize: 16),
+            ),
+
+            const SizedBox(height: 20),
+
+            ElevatedButton(onPressed: loadVideos, child: const Text("Refresh")),
+          ],
+        ),
+      );
+    }
+
+    // ----------------------------------------------------------
+    // FEED
+    // ----------------------------------------------------------
+
+    return Stack(
+      children: [
+        // ========================================================
+        // VERTICAL VIDEO FEED
+        // ========================================================
+        PageView.builder(
+          controller: pageController,
+
+          scrollDirection: Axis.vertical,
+
+          physics: const PageScrollPhysics(),
+
+          itemCount: videos.length,
+
+          onPageChanged: onPageChanged,
+
+          itemBuilder: (context, index) {
+            final Video video = videos[index];
+
+            return HotelFeedItem(
+              key: ValueKey(video.id),
+
+              video: video,
+
+              isActive: index == currentIndex,
+            );
+          },
+        ),
+
+        // ========================================================
+        // TOP BUTTONS
+        // ========================================================
+        SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 // ==================================================
-                // VIDEO FEED
+                // MENU
                 // ==================================================
-                PageView.builder(
-                  controller: pageController,
-
-                  scrollDirection: Axis.vertical,
-
-                  // TikTok-style page snapping.
-                  physics: const PageScrollPhysics(),
-
-                  itemCount: videos.length,
-
-                  onPageChanged: onPageChanged,
-
-                  itemBuilder: (context, index) {
-                    return const SizedBox.shrink();
+                _topButton(
+                  icon: Icons.menu,
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const MenuScreen()),
+                    );
                   },
                 ),
 
                 // ==================================================
-                // TOP BUTTONS
+                // NOTIFICATIONS
                 // ==================================================
-                SafeArea(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 10,
-                    ),
-
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-
-                      children: [
-                        // ==========================================
-                        // MENU
-                        // ==========================================
-                        Container(
-                          decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: .35),
-                            shape: BoxShape.circle,
-                          ),
-
-                          child: IconButton(
-                            icon: const Icon(Icons.menu, color: Colors.white),
-
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const MenuScreen(),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-
-                        // ==========================================
-                        // NOTIFICATIONS
-                        // ==========================================
-                        Container(
-                          decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: .35),
-                            shape: BoxShape.circle,
-                          ),
-
-                          child: IconButton(
-                            icon: const Icon(
-                              Icons.notifications_none,
-                              color: Colors.white,
-                            ),
-
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const NotificationScreen(),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                _topButton(
+                  icon: Icons.notifications_none,
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const NotificationScreen(),
+                      ),
+                    );
+                  },
                 ),
               ],
             ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ============================================================
+  // TOP BUTTON
+  // ============================================================
+
+  Widget _topButton({required IconData icon, required VoidCallback onPressed}) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: .35),
+        shape: BoxShape.circle,
+      ),
+
+      child: IconButton(
+        icon: Icon(icon, color: Colors.white),
+
+        onPressed: onPressed,
+      ),
     );
   }
 

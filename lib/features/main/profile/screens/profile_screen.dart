@@ -9,8 +9,6 @@ import '../widgets/profile_tab_bar.dart';
 import '../tabs/about_tab.dart';
 import '../tabs/favorites_tab.dart';
 import '../tabs/likes_tab.dart';
-
-import '../../profile/upgrade/consumer_upgrade_screen.dart';
 import '../../../auth/screens/login_screen.dart';
 import '../../../../data/dummy/user_dummy.dart';
 
@@ -104,21 +102,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         onLogin: () {},
 
                         // ==================================
-                        // UPGRADE
-                        // ==================================
-                        onUpgrade: isViewingSelf ? () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const ConsumerUpgradeScreen(),
-                            ),
-                          );
-                        } : null,
-
-                        // ==================================
-                        // LOGOUT
-                        // ==================================
                         onLogout: isViewingSelf ? logout : null,
+                        onUpgrade: null,
                       ),
 
                       const ProfileStats(),
