@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:provider/provider.dart';
 import '../providers/post_actions_provider.dart';
 import '../providers/feed_provider.dart';
@@ -41,10 +40,10 @@ class LikeButton extends StatelessWidget {
                   );
                 },
                 child: Icon(
-                  isLiked ? CupertinoIcons.heart_fill : CupertinoIcons.heart,
+                  isLiked ? Icons.favorite : Icons.favorite_border,
                   key: ValueKey<bool>(isLiked),
                   color: isLiked ? const Color(0xFFFF3040) : Colors.white,
-                  size: 29,
+                  size: 30,
                   shadows: const [
                     Shadow(
                       offset: Offset(0, 1.5),

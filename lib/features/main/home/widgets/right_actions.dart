@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
 
@@ -116,7 +115,7 @@ class _RightActionsState extends State<RightActions> {
 
         // COMMENT BUTTON (Instagram Speech Bubble)
         _ActionButton(
-          icon: CupertinoIcons.chat_bubble,
+          icon: Icons.chat_bubble_outline_rounded,
           color: Colors.white,
           count: widget.post.comments,
           onTap: () {
@@ -139,7 +138,7 @@ class _RightActionsState extends State<RightActions> {
 
         // SHARE BUTTON (Instagram Paper Plane)
         _ActionButton(
-          icon: CupertinoIcons.paperplane,
+          icon: Icons.send_rounded,
           color: Colors.white,
           count: widget.post.shares,
           onTap: () {
@@ -161,7 +160,7 @@ class _RightActionsState extends State<RightActions> {
 
         // SAVE BUTTON (Instagram Bookmark Ribbon)
         _ActionButton(
-          icon: saved ? CupertinoIcons.bookmark_fill : CupertinoIcons.bookmark,
+          icon: saved ? Icons.bookmark_rounded : Icons.bookmark_border_rounded,
           color: saved ? const Color(0xFFFFE000) : Colors.white,
           count: bookmarks,
           onTap: toggleSave,
