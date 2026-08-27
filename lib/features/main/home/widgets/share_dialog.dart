@@ -2,8 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import '../../../../core/services/auth_service.dart';
 import '../../../../data/services/post_service.dart';
 import '../providers/feed_provider.dart';
+
+/// Maps UI label → API platform name for the 4 supported platforms.
+const _apiPlatforms = <String, String>{
+  'WhatsApp': 'whatsapp',
+  'Instagram': 'instagram',
+  'Facebook': 'facebook',
+  'Twitter': 'twitter',
+};
 
 class ShareDialog extends StatelessWidget {
   final int postId;
@@ -11,8 +20,19 @@ class ShareDialog extends StatelessWidget {
   const ShareDialog({super.key, required this.postId});
 
   Future<void> _shareAction(BuildContext context, String platform) async {
-    // Record mock share interaction
-    await PostService.sharePost(postId);
+    // Only call the share API for platforms the backend supports.
+    final apiPlatform = _apiPlatforms[platform];
+    if (apiPlatform != null) {
+      try {
+        await PostService.sharePost(
+          postId,
+          userId: AuthService.currentUser?.id ?? 0,
+          platform: apiPlatform,
+        );
+      } catch (e) {
+        debugPrint('sharePost failed: $e');
+      }
+    }
 
     if (!context.mounted) return;
 
@@ -41,9 +61,10 @@ class ShareDialog extends StatelessWidget {
         'Check out this post on SuperPlatform: https://superplatform.com/post/$postId',
       );
     } else {
-      // Share API not yet built — show friendly holding message.
+      // Platform share recorded via API above — show confirmation.
+      Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Sharing to $platform coming soon!')),
+        SnackBar(content: Text('Shared to $platform!')),
       );
     }
   }

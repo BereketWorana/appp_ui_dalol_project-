@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../core/services/auth_service.dart';
 import '../models/post.dart';
 import '../dummy/feed_dummy.dart';
 
@@ -49,7 +50,7 @@ class FeedService {
   }) async {
     try {
       final uri = Uri.parse(
-        '$_baseUrl/api/posts/feed?offset=$offset&limit=$limit',
+        '$_baseUrl/api/posts/feed?user_id=${AuthService.currentUser?.id ?? 0}&offset=$offset&limit=$limit',
       );
       
       debugPrint('GET $uri');

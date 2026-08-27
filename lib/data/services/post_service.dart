@@ -141,11 +141,33 @@ class PostService {
     });
   }
 
-  /// Shares a post.
-  static Future<bool> sharePost(int postId) async {
-    // Simulate network delay
-    await Future.delayed(const Duration(milliseconds: 500));
-    return true;
+  /// Shares a post to a specific platform.
+  ///
+  /// POST /api/posts/share with {post_id, user_id, platform}
+  /// Valid platforms: facebook, whatsapp, instagram, twitter, telegram, linkedin, internal
+  static Future<bool> sharePost(int postId, {required int userId, required String platform}) async {
+    final uri = Uri.parse('$_baseUrl/api/posts/share');
+    debugPrint('POST $uri');
+
+    final response = await http
+        .post(
+          uri,
+          headers: await _headers(),
+          body: json.encode({
+            'post_id': postId,
+            'user_id': userId,
+            'platform': platform,
+          }),
+        )
+        .timeout(const Duration(seconds: 10));
+
+    debugPrint('Response: ${response.statusCode}');
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return true;
+    }
+
+    throw Exception('Failed to share post: ${response.statusCode}');
   }
 
   /// Fetches posts for a specific user.
