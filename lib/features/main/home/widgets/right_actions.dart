@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
 
@@ -56,7 +57,7 @@ class _RightActionsState extends State<RightActions> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Poster profile image
+        // Poster profile image with Instagram style follow badge
         GestureDetector(
           onTap: () {
             Navigator.push(
@@ -70,13 +71,21 @@ class _RightActionsState extends State<RightActions> {
           },
           child: Stack(
             clipBehavior: Clip.none,
+            alignment: Alignment.bottomCenter,
             children: [
               Container(
-                width: 52,
-                height: 52,
+                width: 48,
+                height: 48,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 2),
+                  border: Border.all(color: Colors.white, width: 1.8),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Colors.black26,
+                      blurRadius: 4,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
                 ),
                 child: ClipOval(
                   child: widget.post.ownerAvatar.startsWith('assets') 
@@ -84,33 +93,32 @@ class _RightActionsState extends State<RightActions> {
                   : CachedNetworkImage(
                       imageUrl: widget.post.ownerAvatar,
                       fit: BoxFit.cover,
-                      placeholder: (_, __) => const CircularProgressIndicator(),
-                      errorWidget: (_, __, ___) => const Icon(Icons.person),
+                      placeholder: (_, __) => const CircularProgressIndicator(strokeWidth: 2),
+                      errorWidget: (_, __, ___) => const Icon(Icons.person, color: Colors.white),
                     ),
                 ),
               ),
 
               Positioned(
-                bottom: -4,
-                right: -4,
+                bottom: -7,
                 child: FollowButton(userId: widget.post.ownerId),
               ),
             ],
           ),
         ),
 
-        const SizedBox(height: 22),
-
-        // LIKE BUTTON
-        LikeButton(postId: widget.post.id, likes: widget.post.likes),
-
         const SizedBox(height: 20),
 
-        // COMMENT BUTTON
+        // LIKE BUTTON (Instagram Heart)
+        LikeButton(postId: widget.post.id, likes: widget.post.likes),
+
+        const SizedBox(height: 18),
+
+        // COMMENT BUTTON (Instagram Speech Bubble)
         _ActionButton(
-          icon: Icons.mode_comment_outlined,
+          icon: CupertinoIcons.chat_bubble,
           color: Colors.white,
-          count: widget.post.comments.toString(),
+          count: widget.post.comments,
           onTap: () {
             final feedProvider = context.read<FeedProvider>();
             showModalBottomSheet(
@@ -127,13 +135,13 @@ class _RightActionsState extends State<RightActions> {
           },
         ),
 
-        const SizedBox(height: 20),
+        const SizedBox(height: 18),
 
-        // SHARE BUTTON
+        // SHARE BUTTON (Instagram Paper Plane)
         _ActionButton(
-          icon: Icons.send_outlined,
+          icon: CupertinoIcons.paperplane,
           color: Colors.white,
-          count: widget.post.shares.toString(),
+          count: widget.post.shares,
           onTap: () {
             showModalBottomSheet(
               context: context,
@@ -149,13 +157,13 @@ class _RightActionsState extends State<RightActions> {
           },
         ),
 
-        const SizedBox(height: 20),
+        const SizedBox(height: 18),
 
-        // SAVE BUTTON
+        // SAVE BUTTON (Instagram Bookmark Ribbon)
         _ActionButton(
-          icon: saved ? Icons.bookmark : Icons.bookmark_border,
-          color: saved ? Colors.yellow : Colors.white,
-          count: bookmarks.toString(),
+          icon: saved ? CupertinoIcons.bookmark_fill : CupertinoIcons.bookmark,
+          color: saved ? const Color(0xFFFFE000) : Colors.white,
+          count: bookmarks,
           onTap: toggleSave,
         ),
       ],
@@ -166,7 +174,7 @@ class _RightActionsState extends State<RightActions> {
 class _ActionButton extends StatelessWidget {
   final IconData icon;
   final Color color;
-  final String count;
+  final int count;
   final VoidCallback onTap;
 
   const _ActionButton({
@@ -179,33 +187,35 @@ class _ActionButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
             icon,
             color: color,
-            size: 36,
+            size: 28,
             shadows: const [
               Shadow(
-                offset: Offset(0, 2),
+                offset: Offset(0, 1.5),
                 blurRadius: 4,
-                color: Colors.black38,
+                color: Colors.black45,
               ),
             ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 3),
           Text(
-            count,
+            _formatCount(count),
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 13,
+              fontSize: 12.5,
               fontWeight: FontWeight.w600,
               shadows: [
                 Shadow(
-                  offset: Offset(0, 2),
-                  blurRadius: 4,
-                  color: Colors.black38,
+                  offset: Offset(0, 1),
+                  blurRadius: 3,
+                  color: Colors.black54,
                 ),
               ],
             ),
@@ -213,6 +223,15 @@ class _ActionButton extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _formatCount(int count) {
+    if (count >= 1000000) {
+      return '${(count / 1000000).toStringAsFixed(1)}M';
+    } else if (count >= 10000) {
+      return '${(count / 1000).toStringAsFixed(1)}K';
+    }
+    return count.toString();
   }
 }
 
