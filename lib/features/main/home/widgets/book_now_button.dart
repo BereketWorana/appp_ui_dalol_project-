@@ -1,3 +1,4 @@
+import '../../../../data/models/user.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../data/dummy/hotel_dummy.dart';
@@ -23,7 +24,7 @@ class BookNowButton extends StatelessWidget {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => HotelDetailScreen(hotel: hotel),
+             builder: (_) => HotelDetailScreen(hotel: hotel as dynamic),
             ),
           );
         } catch (e) {

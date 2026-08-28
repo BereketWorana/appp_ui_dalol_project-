@@ -246,11 +246,11 @@ class AuthService {
 
           "is_verified": _isVerified,
 
-          "pending": pending,
+        "pending": false,  // ✅ Hardcode for no
 
           "role": _currentUser!.role,
 
-          "user_type": userType,
+       "user_type": "customer",  // ✅ Hardcode for now
         };
       }
 
