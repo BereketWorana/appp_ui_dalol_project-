@@ -9,12 +9,12 @@ import '../widgets/profile_tab_bar.dart';
 import '../tabs/about_tab.dart';
 import '../tabs/favorites_tab.dart';
 import '../tabs/likes_tab.dart';
-
-import '../../profile/upgrade/consumer_upgrade_screen.dart';
 import '../../../auth/screens/login_screen.dart';
+import '../../../../data/dummy/user_dummy.dart';
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+  final int? userId;
+  const ProfileScreen({super.key, this.userId});
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -37,7 +37,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final user = AuthService.currentUser;
+    final isViewingSelf = widget.userId == null || widget.userId == AuthService.currentUser?.id;
+    
+    final user = isViewingSelf 
+        ? AuthService.currentUser 
+        : users.firstWhere(
+            (u) => u.id == widget.userId, 
+            orElse: () => users.first,
+          );
 
     // ==========================================
     // NOT LOGGED IN
@@ -95,21 +102,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         onLogin: () {},
 
                         // ==================================
-                        // UPGRADE
-                        // ==================================
-                        onUpgrade: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const ConsumerUpgradeScreen(),
-                            ),
-                          );
-                        },
-
-                        // ==================================
-                        // LOGOUT
-                        // ==================================
-                        onLogout: logout,
+                        onLogout: isViewingSelf ? logout : null,
+                        onUpgrade: null,
                       ),
 
                       const ProfileStats(),

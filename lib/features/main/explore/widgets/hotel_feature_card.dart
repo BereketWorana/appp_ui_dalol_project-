@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../../../../data/models/user.dart';
+import '../../../../data/models/hotel.dart';
 import '../../booking/screens/hotel_details_screen.dart';
 
 class HotelFeatureCard extends StatelessWidget {
-  final User hotel;
+  final Hotel hotel;
 
   const HotelFeatureCard({super.key, required this.hotel});
 
@@ -21,7 +21,7 @@ class HotelFeatureCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(25),
 
         image: DecorationImage(
-          image: AssetImage(hotel.coverImage),
+          image: AssetImage(hotel.image),
 
           fit: BoxFit.cover,
         ),
@@ -69,7 +69,7 @@ class HotelFeatureCard extends StatelessWidget {
             const SizedBox(height: 8),
 
             Text(
-              hotel.fullName,
+              hotel.name,
 
               style: const TextStyle(
                 color: Colors.white,

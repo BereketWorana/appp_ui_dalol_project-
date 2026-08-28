@@ -73,7 +73,9 @@ class HotelVideoPlayerState extends State<HotelVideoPlayer> {
         await controller.play();
       }
     } catch (e) {
-      debugPrint("Video initialization error: $e");
+      if (!e.toString().contains('UnimplementedError')) {
+        debugPrint("Video initialization error: $e");
+      }
 
       if (!mounted) return;
 

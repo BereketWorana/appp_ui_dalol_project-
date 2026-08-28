@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../../../../data/models/user.dart';
+import '../../../../data/models/hotel.dart';
 
 class PopularHotelCard extends StatelessWidget {
-  final User hotel;
+  final Hotel hotel;
 
   const PopularHotelCard({super.key, required this.hotel});
 
@@ -26,7 +26,7 @@ class PopularHotelCard extends StatelessWidget {
             borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
 
             child: Image.asset(
-              hotel.coverImage,
+              hotel.image,
               height: 130,
               width: double.infinity,
               fit: BoxFit.cover,
@@ -41,7 +41,7 @@ class PopularHotelCard extends StatelessWidget {
 
               children: [
                 Text(
-                  hotel.fullName,
+                  hotel.name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(

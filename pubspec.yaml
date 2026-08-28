@@ -35,10 +35,11 @@ dependencies:
   video_player: ^2.9.1
   image_picker: ^1.1.2
   shared_preferences: ^2.5.5
-  
-  # The following adds the Cupertino Icons font to your application.
-  # Use with the CupertinoIcons class for iOS style icons.
- 
+  shimmer: ^3.0.0
+  provider: ^6.1.2
+  share_plus: ^10.0.0
+  cached_network_image: ^3.4.0
+  cupertino_icons: ^1.0.8
 
 dev_dependencies:
   flutter_test:
@@ -67,12 +68,16 @@ flutter:
     - assets/images/
     - assets/images/explore/
     - assets/videos/
-    - assets/icons/
-    - assets/animations/
     - assets/logo/google.png
     - assets/logo/facebook.png 
     - assets/data/
     - assets/rooms/
+    - assets/videos/hotel1.mp4
+    - assets/videos/hotel2.mp4
+    - assets/videos/hotel3.mp4
+    - assets/videos/hotel4.mp4
+    - assets/videos/hotel5.mp4
+    - assets/videos/hotel6.mp4
 
   # To add assets to your application, add an assets section, like this:
   # assets:

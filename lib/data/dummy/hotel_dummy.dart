@@ -2,6 +2,7 @@ import '../models/hotel.dart';
 
 final List<Hotel> hotels = [
   Hotel(
+    id: 1,
     name: "Grand Palace Hotel",
     image: "assets/images/r1.jpg",
     video: "assets/videos/hotel1.mp4",
@@ -17,6 +18,7 @@ final List<Hotel> hotels = [
   ),
 
   Hotel(
+    id: 2,
     name: "Blue Nile Resort",
     image: "assets/images/r2.jpg",
     video: "assets/videos/hotel2.mp4",
@@ -33,6 +35,7 @@ final List<Hotel> hotels = [
   ),
 
   Hotel(
+    id: 3,
     name: "Lalibela Lodge",
     image: "assets/images/r3.jpg",
     video: "assets/videos/hotel3.mp4",
@@ -49,6 +52,7 @@ final List<Hotel> hotels = [
   ),
 
   Hotel(
+    id: 4,
     name: "Addis Luxury Hotel",
     image: "assets/images/r4.jpg",
     video: "assets/videos/hotel4.mp4",
@@ -65,6 +69,7 @@ final List<Hotel> hotels = [
   ),
 
   Hotel(
+    id: 5,
     name: "Mountain View Resort",
     image: "assets/images/r5.jpg",
     video: "assets/videos/hotel5.mp4",
@@ -80,6 +85,7 @@ final List<Hotel> hotels = [
   ),
 
   Hotel(
+    id: 6,
     name: "Paradise Resort",
     image: "assets/images/r6.jpg",
     video: "assets/videos/hotel6.mp4",
@@ -95,6 +101,7 @@ final List<Hotel> hotels = [
   ),
 
   Hotel(
+    id: 7,
     name: "Royal Garden Hotel",
     image: "assets/images/r7.jpg",
     video: "assets/videos/hotel7.mp4",
@@ -110,6 +117,7 @@ final List<Hotel> hotels = [
   ),
 
   Hotel(
+    id: 8,
     name: "Sunset Beach Hotel",
     image: "assets/images/r8.jpg",
     video: "assets/videos/hotel8.mp4",
@@ -125,6 +133,7 @@ final List<Hotel> hotels = [
   ),
 
   Hotel(
+    id: 9,
     name: "Blue Ocean Resort",
     image: "assets/images/r9.jpg",
     video: "assets/videos/hotel9.mp4",
@@ -140,6 +149,7 @@ final List<Hotel> hotels = [
   ),
 
   Hotel(
+    id: 10,
     name: "Skyline Hotel",
     image: "assets/images/r10.jpg",
     video: "assets/videos/hotel10.mp4",
@@ -155,6 +165,7 @@ final List<Hotel> hotels = [
   ),
 
   Hotel(
+    id: 11,
     name: "Royal Palace Resort",
     image: "assets/images/r11.jpg",
     video: "assets/videos/hotel11.mp4",

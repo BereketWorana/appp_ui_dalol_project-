@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -19,6 +20,7 @@ class AuthService {
   static const String _refreshTokenKey = "refresh_token";
   static const String _userKey = "current_user";
   static const String _rememberMeKey = "remember_me";
+  static const String _verifiedKey = "is_verified";
 
   // ============================================================
   // CURRENT USER
@@ -35,6 +37,37 @@ class AuthService {
   static String? get accessToken => _accessToken;
 
   // ============================================================
+  // VERIFICATION STATUS
+  // ============================================================
+
+  static bool _isVerified = false;
+
+  static bool get isVerified => _isVerified;
+
+  // ============================================================
+  // PENDING STATUS
+  //
+  // Only influencer/creator and merchant/hotel owner
+  // can be considered pending.
+  // ============================================================
+
+  static bool get isPending {
+    if (_currentUser == null) {
+      return false;
+    }
+
+    final currentRole = _currentUser!.role.toLowerCase();
+
+    final isRestrictedRole =
+        currentRole == "creator" ||
+        currentRole == "influencer" ||
+        currentRole == "merchant" ||
+        currentRole == "hotel_owner";
+
+    return isRestrictedRole && !_isVerified;
+  }
+
+  // ============================================================
   // LOGIN STATUS
   // ============================================================
 
@@ -49,7 +82,7 @@ class AuthService {
   static String get role => _currentUser?.role ?? "consumer";
 
   // ============================================================
-  // REMEMBER ME STATUS
+  // REMEMBER ME
   // ============================================================
 
   static bool _rememberMe = false;
@@ -94,6 +127,7 @@ class AuthService {
     if (!_rememberMe) {
       _accessToken = null;
       _currentUser = null;
+      _isVerified = false;
       return;
     }
 
@@ -117,6 +151,7 @@ class AuthService {
       await prefs.remove(_accessTokenKey);
       await prefs.remove(_refreshTokenKey);
       await prefs.remove(_userKey);
+      await prefs.remove(_verifiedKey);
     }
   }
 
@@ -189,16 +224,33 @@ class AuthService {
             await prefs.setString(_refreshTokenKey, refreshToken);
           }
           await prefs.setString(_userKey, jsonEncode(_currentUser!.toJson()));
+
+          await prefs.setBool(_verifiedKey, _isVerified);
         } else {
           await prefs.remove(_accessTokenKey);
           await prefs.remove(_refreshTokenKey);
           await prefs.remove(_userKey);
+          await prefs.remove(_verifiedKey);
         }
 
         return {
           "success": true,
+
           "message": body["message"]?.toString() ?? "Login successful.",
+
           "user": _currentUser,
+
+          "access_token": _accessToken,
+
+          "refresh_token": refreshToken,
+
+          "is_verified": _isVerified,
+
+        "pending": false,  // ✅ Hardcode for no
+
+          "role": _currentUser!.role,
+
+       "user_type": "customer",  // ✅ Hardcode for now
         };
       }
 
@@ -289,6 +341,7 @@ class AuthService {
           "success": true,
           "message": body["message"]?.toString() ?? "Registration successful.",
           "user": _currentUser,
+          "is_verified": _isVerified,
         };
       }
 

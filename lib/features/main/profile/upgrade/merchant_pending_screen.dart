@@ -1,153 +1,205 @@
 import 'package:flutter/material.dart';
 
-import '../../screens/main_screen.dart';
+import '../../../../features/main/home/screens/home_screen.dart';
 
 class MerchantPendingScreen extends StatelessWidget {
-  const MerchantPendingScreen({super.key});
+  const MerchantPendingScreen({
+    super.key,
+    required hotelId,
+    required String hotelName,
+  });
+
+  // ============================================================
+  // CONTINUE AS GUEST
+  // ============================================================
+
+  void continueAsGuest(BuildContext context) {
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => const HomeScreen()),
+      (route) => false,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
+    return PopScope(
+      canPop: false,
 
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(30),
+      child: Scaffold(
+        backgroundColor: Colors.black,
 
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 28),
 
-            children: [
-              Container(
-                width: 120,
+            child: Column(
+              children: [
+                const Spacer(),
 
-                height: 120,
+                // ==================================================
+                // SUCCESS ICON
+                // ==================================================
+                Container(
+                  width: 110,
+                  height: 110,
 
-                decoration: BoxDecoration(
-                  color: Colors.white,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.08),
 
-                  shape: BoxShape.circle,
+                    shape: BoxShape.circle,
+
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.15),
+                    ),
+                  ),
+
+                  child: const Icon(
+                    Icons.hourglass_top_rounded,
+                    color: Colors.white,
+                    size: 55,
+                  ),
                 ),
 
-                child: const Icon(
-                  Icons.hourglass_top_rounded,
+                const SizedBox(height: 30),
 
-                  color: Colors.black,
+                // ==================================================
+                // TITLE
+                // ==================================================
+                const Text(
+                  "Application Submitted!",
+                  textAlign: TextAlign.center,
 
-                  size: 60,
-                ),
-              ),
-
-              const SizedBox(height: 40),
-
-              const Text(
-                "Application Submitted",
-
-                textAlign: TextAlign.center,
-
-                style: TextStyle(
-                  color: Colors.white,
-
-                  fontSize: 30,
-
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-
-              const SizedBox(height: 15),
-
-              const Text(
-                "Your business application is under review.\n\n"
-                "Our team will verify your information "
-                "and notify you after approval.",
-
-                textAlign: TextAlign.center,
-
-                style: TextStyle(
-                  color: Colors.white60,
-
-                  fontSize: 16,
-
-                  height: 1.5,
-                ),
-              ),
-
-              const SizedBox(height: 40),
-
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 25,
-
-                  vertical: 15,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
 
-                decoration: BoxDecoration(
-                  color: Colors.white12,
+                const SizedBox(height: 15),
 
-                  borderRadius: BorderRadius.circular(20),
+                // ==================================================
+                // DESCRIPTION
+                // ==================================================
+                const Text(
+                  "Your hotel registration has been successfully submitted and is now under review.",
+                  textAlign: TextAlign.center,
 
-                  border: Border.all(color: Colors.white24),
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 15,
+                    height: 1.5,
+                  ),
                 ),
 
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
+                const SizedBox(height: 18),
 
-                  children: [
-                    Icon(Icons.pending_actions, color: Colors.white),
+                // ==================================================
+                // APPROVAL INFO
+                // ==================================================
+                Container(
+                  width: double.infinity,
 
-                    SizedBox(width: 12),
+                  padding: const EdgeInsets.all(18),
 
-                    Text(
-                      "Status: Pending",
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.06),
 
+                    borderRadius: BorderRadius.circular(18),
+
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.12),
+                    ),
+                  ),
+
+                  child: const Column(
+                    children: [
+                      Icon(
+                        Icons.verified_outlined,
+                        color: Colors.white70,
+                        size: 30,
+                      ),
+
+                      SizedBox(height: 12),
+
+                      Text(
+                        "Waiting for approval",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+
+                      SizedBox(height: 7),
+
+                      Text(
+                        "Once your hotel is approved by the administrator, you will be able to access your hotel management features.",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.white54,
+                          fontSize: 13,
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const Spacer(),
+
+                // ==================================================
+                // GUEST BUTTON
+                // ==================================================
+                SizedBox(
+                  width: double.infinity,
+                  height: 55,
+
+                  child: ElevatedButton(
+                    onPressed: () {
+                      continueAsGuest(context);
+                    },
+
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: Colors.black,
+                      elevation: 0,
+
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                    ),
+
+                    child: const Text(
+                      "Continue as Guest",
                       style: TextStyle(
-                        color: Colors.white,
-
+                        fontSize: 15,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 50),
-
-              SizedBox(
-                width: double.infinity,
-
-                height: 55,
-
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.pushAndRemoveUntil(
-                      context,
-
-                      MaterialPageRoute(
-                        builder: (context) => const ConsumerMainScreen(),
-                      ),
-
-                      (route) => false,
-                    );
-                  },
-
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-
-                    foregroundColor: Colors.black,
-
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                  ),
-
-                  child: const Text(
-                    "Continue Exploring",
-
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                 ),
-              ),
-            ],
+
+                const SizedBox(height: 12),
+
+                // ==================================================
+                // SMALL MESSAGE
+                // ==================================================
+                const Text(
+                  "You can continue browsing the platform while your application is being reviewed.",
+                  textAlign: TextAlign.center,
+
+                  style: TextStyle(
+                    color: Colors.white38,
+                    fontSize: 12,
+                    height: 1.4,
+                  ),
+                ),
+
+                const SizedBox(height: 25),
+              ],
+            ),
           ),
         ),
       ),
