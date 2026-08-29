@@ -153,34 +153,46 @@ class Post {
   // ============================================================
 
   factory Post.fromJson(Map<String, dynamic> json) {
+    String mediaUrl = '';
+    if (json['media_urls'] is List && (json['media_urls'] as List).isNotEmpty) {
+      mediaUrl = (json['media_urls'] as List).first?.toString() ?? '';
+    } else if (json['mediaUrl'] != null) {
+      mediaUrl = json['mediaUrl'].toString();
+    } else if (json['media_url'] != null) {
+      mediaUrl = json['media_url'].toString();
+    }
+
     return Post(
       id: _toInt(json['id']),
-      ownerId: _toInt(json['ownerId']),
-      ownerName: json['ownerName']?.toString() ?? '',
-      ownerAvatar: json['ownerAvatar']?.toString() ?? '',
+      ownerId: _toInt(json['ownerId'] ?? json['user_id']),
+      ownerName: json['ownerName']?.toString() ?? json['user_name']?.toString() ?? '',
+      ownerAvatar: json['ownerAvatar']?.toString() ?? json['user_avatar']?.toString() ?? '',
       ownerRole: json['ownerRole']?.toString() ?? 'consumer',
-      ownerUsername: json['ownerUsername']?.toString() ?? '',
-      hotelId: _toIntOrNull(json['hotelId']),
-      mediaUrl: json['mediaUrl']?.toString() ?? '',
-      mediaType: json['mediaType']?.toString() ?? 'video',
-      thumbnail: json['thumbnail']?.toString() ?? '',
-      caption: json['caption']?.toString() ?? '',
+      ownerUsername: json['ownerUsername']?.toString() ?? json['username']?.toString() ?? '',
+      hotelId: _toIntOrNull(json['hotelId'] ?? json['hotel_id']),
+      mediaUrl: mediaUrl,
+      mediaType: json['mediaType']?.toString() ?? json['post_type']?.toString() ?? 'video',
+      thumbnail: json['thumbnail']?.toString() ?? json['thumbnail_url']?.toString() ?? '',
+      caption: json['caption']?.toString() ?? json['description']?.toString() ?? json['title']?.toString() ?? '',
       hashtags: (json['hashtags'] as List<dynamic>?)
               ?.map((e) => e.toString())
               .toList() ??
           [],
-      location: json['location']?.toString(),
+      location: json['location']?.toString() ?? json['hotel_city']?.toString(),
       price: _toDoubleOrNull(json['price']),
-      rating: _toDoubleOrNull(json['rating']),
-      likes: _toInt(json['likes']),
-      comments: _toInt(json['comments']),
-      shares: _toInt(json['shares']),
+      rating: _toDoubleOrNull(json['rating'] ?? json['hotel_rating']),
+      likes: _toInt(json['likes'] ?? json['likes_count']),
+      comments: _toInt(json['comments'] ?? json['comments_count']),
+      shares: _toInt(json['shares'] ?? json['shares_count']),
       bookmarks: _toInt(json['bookmarks']),
-      isLiked: json['isLiked'] == true || json['isLiked'] == 1 || json['isLiked'] == "1",
+      isLiked: json['isLiked'] == true || json['isLiked'] == 1 || json['isLiked'] == "1" ||
+          json['is_liked'] == true || json['is_liked'] == 1 || json['is_liked'] == "1",
       isFollowing: json['isFollowing'] == true || json['isFollowing'] == 1 || json['isFollowing'] == "1",
       createdAt: json['createdAt'] != null
           ? DateTime.tryParse(json['createdAt'].toString()) ?? DateTime.now()
-          : DateTime.now(),
+          : json['created_at'] != null
+              ? DateTime.tryParse(json['created_at'].toString()) ?? DateTime.now()
+              : DateTime.now(),
     );
   }
 

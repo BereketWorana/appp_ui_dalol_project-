@@ -1,66 +1,152 @@
 import 'package:flutter/material.dart';
+import '../../../../core/services/auth_service.dart';
+import '../../../../data/models/booking.dart';
+import '../../../../data/repositories/booking_repository.dart';
 
-class BookingManagementContent extends StatelessWidget {
+class BookingManagementContent extends StatefulWidget {
   const BookingManagementContent({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            "📋 Booking Management",
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            "Manage all your bookings in one place",
-            style: TextStyle(color: Colors.white54, fontSize: 14),
-          ),
-          const SizedBox(height: 20),
-          _buildBookingCard(
-            "John Doe",
-            "Deluxe Room - Sheraton Addis",
-            "Dec 25-28, 2025",
-            "2 Guests",
-            "Confirmed",
-            Colors.green,
-          ),
-          _buildBookingCard(
-            "Jane Smith",
-            "Suite - Marriott Executive",
-            "Jan 10-15, 2026",
-            "4 Guests",
-            "Pending",
-            Colors.orange,
-          ),
-          _buildBookingCard(
-            "Mike Johnson",
-            "Standard Room - Radisson Blu",
-            "Jan 20-22, 2026",
-            "1 Guest",
-            "Cancelled",
-            Colors.red,
-          ),
+  State<BookingManagementContent> createState() => _BookingManagementContentState();
+}
+
+class _BookingManagementContentState extends State<BookingManagementContent> {
+  List<Booking> _bookings = [];
+  bool _isLoading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBookings();
+  }
+
+  Future<void> _loadBookings() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    final userId = AuthService.userId;
+    if (userId == null) {
+      setState(() {
+        _isLoading = false;
+        _error = 'Please log in to view your bookings';
+      });
+      return;
+    }
+
+    try {
+      final bookings = await BookingRepository.getUserBookings(userId: userId);
+      setState(() {
+        _bookings = bookings;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+        _error = 'Failed to load bookings';
+      });
+    }
+  }
+
+  Future<void> _cancelBooking(Booking booking) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Cancel Booking'),
+        content: Text('Cancel booking ${booking.bookingReference}?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('No')),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Yes, Cancel')),
         ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    final result = await BookingRepository.cancelBooking(booking.id);
+    if (result['success'] == true) {
+      _loadBookings();
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(result['message']?.toString() ?? 'Cancel failed')),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator(color: Colors.white));
+    }
+
+    if (_error != null) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(_error!, style: const TextStyle(color: Colors.white54)),
+            const SizedBox(height: 16),
+            ElevatedButton(onPressed: _loadBookings, child: const Text('Retry')),
+          ],
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: _loadBookings,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              "📋 Booking Management",
+              style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              "Manage all your bookings in one place",
+              style: TextStyle(color: Colors.white54, fontSize: 14),
+            ),
+            const SizedBox(height: 20),
+            if (_bookings.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 40),
+                child: Center(
+                  child: Text(
+                    "No bookings yet",
+                    style: TextStyle(color: Colors.white54, fontSize: 16),
+                  ),
+                ),
+              )
+            else
+              ..._bookings.map((b) => _buildBookingCard(b)),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildBookingCard(
-    String name,
-    String room,
-    String dates,
-    String guests,
-    String status,
-    Color statusColor,
-  ) {
+  Widget _buildBookingCard(Booking booking) {
+    final statusColor = booking.isConfirmed
+        ? Colors.green
+        : booking.isCancelled
+            ? Colors.red
+            : booking.isCompleted
+                ? Colors.blue
+                : Colors.orange;
+
+    final hotelName = booking.hotel?['name']?.toString() ?? 'Hotel';
+    final roomName = booking.room?['name']?.toString() ?? 'Room';
+    final dateRange =
+        '${booking.checkInDate.month}/${booking.checkInDate.day} - ${booking.checkOutDate.month}/${booking.checkOutDate.day}/${booking.checkOutDate.year}';
+    final guests = '${booking.adults + booking.children} Guest${booking.adults + booking.children == 1 ? '' : 's'}';
+
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       padding: const EdgeInsets.all(16),
@@ -75,55 +161,38 @@ class BookingManagementContent extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                name,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
+              Expanded(
+                child: Text(
+                  booking.guestName.isNotEmpty ? booking.guestName : hotelName,
+                  style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 4,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                 decoration: BoxDecoration(
                   color: statusColor.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  status,
-                  style: TextStyle(
-                    color: statusColor,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  booking.status,
+                  style: TextStyle(color: statusColor, fontSize: 11, fontWeight: FontWeight.w600),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 6),
-          Text(
-            room,
-            style: const TextStyle(color: Colors.white70, fontSize: 14),
-          ),
+          Text('$roomName - $hotelName', style: const TextStyle(color: Colors.white70, fontSize: 14)),
           const SizedBox(height: 8),
           Row(
             children: [
               const Icon(Icons.calendar_today, color: Colors.white54, size: 16),
               const SizedBox(width: 6),
-              Text(
-                dates,
-                style: const TextStyle(color: Colors.white54, fontSize: 13),
-              ),
+              Text(dateRange, style: const TextStyle(color: Colors.white54, fontSize: 13)),
               const SizedBox(width: 16),
               const Icon(Icons.people, color: Colors.white54, size: 16),
               const SizedBox(width: 6),
-              Text(
-                guests,
-                style: const TextStyle(color: Colors.white54, fontSize: 13),
-              ),
+              Text(guests, style: const TextStyle(color: Colors.white54, fontSize: 13)),
             ],
           ),
           const SizedBox(height: 12),
@@ -131,32 +200,41 @@ class BookingManagementContent extends StatelessWidget {
             children: [
               Expanded(
                 child: OutlinedButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (_) => AlertDialog(
+                        title: Text(booking.bookingReference),
+                        content: Text(
+                          'Status: ${booking.status}\n'
+                          'Payment: ${booking.paymentStatus}\n'
+                          'Total: ${booking.totalPrice}\n'
+                          'Nights: ${booking.nights}',
+                        ),
+                        actions: [
+                          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close')),
+                        ],
+                      ),
+                    );
+                  },
                   style: OutlinedButton.styleFrom(
                     side: const BorderSide(color: Colors.white24),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
-                  child: const Text(
-                    "View Details",
-                    style: TextStyle(color: Colors.white70),
-                  ),
+                  child: const Text("View Details", style: TextStyle(color: Colors.white70)),
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: ElevatedButton(
-                  onPressed: () {},
+                  onPressed: booking.isCancelled ? null : () => _cancelBooking(booking),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blue,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
-                  child: const Text(
-                    "Manage",
-                    style: TextStyle(color: Colors.white),
+                  child: Text(
+                    booking.isCancelled ? "Cancelled" : "Cancel",
+                    style: const TextStyle(color: Colors.white),
                   ),
                 ),
               ),
