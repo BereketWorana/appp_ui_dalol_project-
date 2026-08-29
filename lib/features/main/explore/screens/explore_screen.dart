@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../../../data/models/hotel.dart' as real_model;
+import '../../booking/screens/hotel_details_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -44,6 +46,22 @@ class Hotel {
     required this.price,
     required this.category,
   });
+
+  real_model.Hotel toRealHotel() {
+    return real_model.Hotel(
+      id: name.hashCode,
+      name: name,
+      image: image,
+      video: 'assets/videos/hotel1.mp4',
+      description: 'Experience world-class hospitality at $name in $location.',
+      location: location,
+      rating: rating,
+      price: price.toDouble(),
+      likes: 120,
+      comments: 15,
+      shares: 8,
+    );
+  }
 }
 
 List<Hotel> getAllHotels() {
@@ -205,6 +223,7 @@ class ExploreScreen extends StatefulWidget {
 
 class _ExploreScreenState extends State<ExploreScreen> {
   final TextEditingController _locationController = TextEditingController();
+  String _searchQuery = '';
   DateTime? _checkInDate;
   DateTime? _checkOutDate;
   int _adults = 2;
@@ -233,16 +252,26 @@ class _ExploreScreenState extends State<ExploreScreen> {
   Widget build(BuildContext context) {
     final allHotels = getAllHotels();
 
+    List<Hotel> searchedHotels = allHotels;
+    if (_searchQuery.isNotEmpty) {
+      final q = _searchQuery.toLowerCase();
+      searchedHotels = allHotels
+          .where((h) =>
+              h.location.toLowerCase().contains(q) ||
+              h.name.toLowerCase().contains(q))
+          .toList();
+    }
+
     // Filter hotels based on selected category
     // ignore: unused_local_variable
-    List<Hotel> filteredHotels = allHotels;
+    List<Hotel> filteredHotels = searchedHotels;
     if (_selectedCategory != 'All') {
-      filteredHotels = allHotels
+      filteredHotels = searchedHotels
           .where((hotel) => hotel.category == _selectedCategory)
           .toList();
     }
 
-    final topHotels = allHotels
+    final topHotels = searchedHotels
         .where((h) => h.category == 'Luxury')
         .take(3)
         .toList();
@@ -334,7 +363,14 @@ class _ExploreScreenState extends State<ExploreScreen> {
                                       ),
                                     ),
                                     child: IconButton(
-                                      onPressed: () {},
+                                      onPressed: () {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(
+                                            content: Text('Notifications coming soon'),
+                                            behavior: SnackBarBehavior.floating,
+                                          ),
+                                        );
+                                      },
                                       icon: const Icon(
                                         Icons.notifications_none,
                                         color: Colors.white,
@@ -606,10 +642,25 @@ class _ExploreScreenState extends State<ExploreScreen> {
                             width: double.infinity,
                             child: ElevatedButton(
                               onPressed: () {
+                                setState(() {
+                                  _searchQuery = _locationController.text.trim();
+                                });
+                                final count = _searchQuery.isEmpty
+                                    ? allHotels.length
+                                    : allHotels
+                                        .where((h) =>
+                                            h.location
+                                                .toLowerCase()
+                                                .contains(_searchQuery.toLowerCase()) ||
+                                            h.name
+                                                .toLowerCase()
+                                                .contains(_searchQuery.toLowerCase()))
+                                        .length;
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Searching for hotels...'),
-                                    backgroundColor: Colors.white,
+                                  SnackBar(
+                                    content: Text(_searchQuery.isEmpty
+                                        ? 'Showing all hotels'
+                                        : 'Found $count hotels for "$_searchQuery"'),
                                     behavior: SnackBarBehavior.floating,
                                   ),
                                 );
@@ -695,23 +746,34 @@ class _ExploreScreenState extends State<ExploreScreen> {
                                         ),
                                         const SizedBox(height: 4),
                                         // View Details Button inside banner
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 14,
-                                            vertical: 5,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: Colors.white,
-                                            borderRadius: BorderRadius.circular(
-                                              20,
+                                        GestureDetector(
+                                          behavior: HitTestBehavior.opaque,
+                                          onTap: () {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              const SnackBar(
+                                                content: Text('Deals coming soon'),
+                                                behavior: SnackBarBehavior.floating,
+                                              ),
+                                            );
+                                          },
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 14,
+                                              vertical: 5,
                                             ),
-                                          ),
-                                          child: const Text(
-                                            "View Details",
-                                            style: TextStyle(
-                                              color: Colors.black,
-                                              fontWeight: FontWeight.w600,
-                                              fontSize: 11,
+                                            decoration: BoxDecoration(
+                                              color: Colors.white,
+                                              borderRadius: BorderRadius.circular(
+                                                20,
+                                              ),
+                                            ),
+                                            child: const Text(
+                                              "View Details",
+                                              style: TextStyle(
+                                                color: Colors.black,
+                                                fontWeight: FontWeight.w600,
+                                                fontSize: 11,
+                                              ),
                                             ),
                                           ),
                                         ),
@@ -849,9 +911,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
                                 });
                               },
                               children: _categories.map((category) {
-                                List<Hotel> categoryHotels = allHotels;
+                                List<Hotel> categoryHotels = searchedHotels;
                                 if (category != 'All') {
-                                  categoryHotels = allHotels
+                                  categoryHotels = searchedHotels
                                       .where(
                                         (hotel) => hotel.category == category,
                                       )
@@ -879,7 +941,14 @@ class _ExploreScreenState extends State<ExploreScreen> {
                                 ),
                               ),
                               TextButton(
-                                onPressed: () {},
+                                onPressed: () {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Popular destinations view coming soon'),
+                                      behavior: SnackBarBehavior.floating,
+                                    ),
+                                  );
+                                },
                                 child: const Text(
                                   "View all",
                                   style: TextStyle(
@@ -938,7 +1007,14 @@ class _ExploreScreenState extends State<ExploreScreen> {
                                 ),
                               ),
                               TextButton(
-                                onPressed: () {},
+                                onPressed: () {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Popular hotels view coming soon'),
+                                      behavior: SnackBarBehavior.floating,
+                                    ),
+                                  );
+                                },
                                 child: const Text(
                                   "View all",
                                   style: TextStyle(
@@ -957,7 +1033,20 @@ class _ExploreScreenState extends State<ExploreScreen> {
                               itemCount: topHotels.length,
                               itemBuilder: (context, index) {
                                 final hotel = topHotels[index];
-                                return Container(
+                                return GestureDetector(
+                                  behavior: HitTestBehavior.opaque,
+                                  onTap: () {
+                                    debugPrint('HOTEL CARD TAPPED: ${hotel.name}');
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => HotelDetailScreen(
+                                          hotel: hotel.toRealHotel(),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  child: Container(
                                   width: 150,
                                   margin: const EdgeInsets.only(right: 14),
                                   decoration: BoxDecoration(
@@ -1045,8 +1134,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
                                       ),
                                     ],
                                   ),
-                                );
-                              },
+                                ),
+                              );
+                            },
                             ),
                           ),
                           const SizedBox(height: 20),
@@ -1085,7 +1175,20 @@ class _ExploreScreenState extends State<ExploreScreen> {
       itemCount: hotels.length,
       itemBuilder: (context, index) {
         final hotel = hotels[index];
-        return Container(
+        return GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () {
+            debugPrint('HOTEL CARD TAPPED: ${hotel.name}');
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => HotelDetailScreen(
+                  hotel: hotel.toRealHotel(),
+                ),
+              ),
+            );
+          },
+          child: Container(
           margin: const EdgeInsets.only(bottom: 10),
           decoration: BoxDecoration(
             color: Colors.white.withValues(alpha: 0.06),
@@ -1180,8 +1283,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
               ),
             ],
           ),
-        );
-      },
+        ),
+      );
+    },
     );
   }
 
@@ -1379,30 +1483,46 @@ class _ExploreScreenState extends State<ExploreScreen> {
   }
 
   Widget _destinationCard(String name, String image) {
-    return Container(
-      width: 120,
-      margin: const EdgeInsets.only(right: 10),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        image: DecorationImage(image: AssetImage(image), fit: BoxFit.cover),
-      ),
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () {
+        setState(() {
+          _locationController.text = name;
+          _searchQuery = name;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Filtering hotels for $name'),
+            duration: const Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      },
       child: Container(
+        width: 120,
+        margin: const EdgeInsets.only(right: 10),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Colors.transparent, Colors.black.withValues(alpha: 0.8)],
-          ),
+          image: DecorationImage(image: AssetImage(image), fit: BoxFit.cover),
         ),
-        alignment: Alignment.bottomLeft,
-        padding: const EdgeInsets.all(10),
-        child: Text(
-          name,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 13,
-            fontWeight: FontWeight.bold,
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Colors.transparent, Colors.black.withValues(alpha: 0.8)],
+            ),
+          ),
+          alignment: Alignment.bottomLeft,
+          padding: const EdgeInsets.all(10),
+          child: Text(
+            name,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
       ),
