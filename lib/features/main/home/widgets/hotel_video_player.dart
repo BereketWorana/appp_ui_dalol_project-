@@ -44,7 +44,9 @@ class HotelVideoPlayerState extends State<HotelVideoPlayer> {
   void initState() {
     super.initState();
 
-    controller = VideoPlayerController.asset(widget.video);
+    controller = widget.video.startsWith('http')
+        ? VideoPlayerController.networkUrl(Uri.parse(widget.video))
+        : VideoPlayerController.asset(widget.video);
 
     initializeVideo();
   }
@@ -54,8 +56,11 @@ class HotelVideoPlayerState extends State<HotelVideoPlayer> {
   // ============================================================
 
   Future<void> initializeVideo() async {
+    debugPrint('Attempting to load video: ${widget.video}');
     try {
-      await controller.initialize();
+      await controller.initialize().timeout(const Duration(seconds: 10));
+
+      debugPrint('Video initialized successfully: ${widget.video}, aspectRatio: ${controller.value.aspectRatio}');
 
       if (!mounted) return;
 
@@ -73,6 +78,7 @@ class HotelVideoPlayerState extends State<HotelVideoPlayer> {
         await controller.play();
       }
     } catch (e) {
+      debugPrint('Video FAILED to initialize: ${widget.video}, error: $e');
       if (!e.toString().contains('UnimplementedError')) {
         debugPrint("Video initialization error: $e");
       }
@@ -210,10 +216,10 @@ class HotelVideoPlayerState extends State<HotelVideoPlayer> {
           child: FittedBox(
             fit: BoxFit.cover,
 
-            child: SizedBox(
-              width: controller.value.size.width,
-              height: controller.value.size.height,
-
+            child: AspectRatio(
+              aspectRatio: controller.value.aspectRatio > 0 
+                  ? controller.value.aspectRatio 
+                  : 16 / 9,
               child: VideoPlayer(controller),
             ),
           ),

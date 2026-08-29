@@ -39,7 +39,7 @@ class BookingService {
     final bookings = await getBookings();
 
     return bookings.where((booking) {
-      return booking.consumerId == user.id;
+      return booking.userId == user.id;
     }).toList();
   }
 

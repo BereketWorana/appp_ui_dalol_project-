@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import '../../../../data/models/user.dart';
+import '../../../../data/models/hotel.dart';
 import '../../../../data/models/room.dart' as models;
 import '../../../../data/repositories/room_repository.dart';
 import '../widgets/room_card.dart';
 
 class HotelDetailScreen extends StatefulWidget {
-  final User hotel;
+  final Hotel hotel;
 
   const HotelDetailScreen({super.key, required this.hotel});
 
@@ -38,7 +38,7 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
 
     try {
       print('🔍 ===== STARTING ROOM LOAD =====');
-      print('🔍 Hotel: ${widget.hotel.fullName}');
+      print('🔍 Hotel: ${widget.hotel.name}');
       print('🔍 Hotel ID: ${widget.hotel.id}');
       print('🔍 Check-in: $_checkIn');
       print('🔍 Check-out: $_checkOut');
@@ -138,20 +138,33 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
                 background: Stack(
                   fit: StackFit.expand,
                   children: [
-                    Image.network(
-                      widget.hotel.coverImage,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(
-                        color: Colors.grey[900],
-                        child: const Icon(
-                          Icons.hotel,
-                          color: Colors.white54,
-                          size: 80,
-                        ),
-                      ),
-                    ),
+                    widget.hotel.image.startsWith('http')
+                        ? Image.network(
+                            widget.hotel.image,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Container(
+                              color: Colors.grey[900],
+                              child: const Icon(
+                                Icons.hotel,
+                                color: Colors.white54,
+                                size: 80,
+                              ),
+                            ),
+                          )
+                        : Image.asset(
+                            widget.hotel.image,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Container(
+                              color: Colors.grey[900],
+                              child: const Icon(
+                                Icons.hotel,
+                                color: Colors.white54,
+                                size: 80,
+                              ),
+                            ),
+                          ),
                     Container(
-                      decoration: BoxDecoration(
+                      decoration: const BoxDecoration(
                         gradient: LinearGradient(
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
@@ -170,7 +183,7 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      widget.hotel.fullName,
+                      widget.hotel.name,
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 26,
@@ -178,18 +191,18 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    const Text(
-                      "Addis Ababa, Ethiopia",
-                      style: TextStyle(color: Colors.white70, fontSize: 15),
+                    Text(
+                      "${widget.hotel.location}, Ethiopia",
+                      style: const TextStyle(color: Colors.white70, fontSize: 15),
                     ),
                     const SizedBox(height: 20),
                     Row(
-                      children: const [
-                        Icon(Icons.star, color: Colors.amber),
-                        SizedBox(width: 5),
+                      children: [
+                        const Icon(Icons.star, color: Colors.amber),
+                        const SizedBox(width: 5),
                         Text(
-                          "4.8  (1250 reviews)",
-                          style: TextStyle(color: Colors.white),
+                          "${widget.hotel.rating}  (1250 reviews)",
+                          style: const TextStyle(color: Colors.white),
                         ),
                       ],
                     ),
@@ -204,7 +217,9 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      "${widget.hotel.fullName} provides luxury rooms, premium services, restaurants and comfortable stays for travelers.",
+                      widget.hotel.description.isNotEmpty
+                          ? widget.hotel.description
+                          : "${widget.hotel.name} provides luxury rooms, premium services, restaurants and comfortable stays for travelers.",
                       style: const TextStyle(
                         color: Colors.white70,
                         height: 1.4,

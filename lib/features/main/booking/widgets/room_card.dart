@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import '../../../../data/models/room.dart';
-import '../../../../data/models/user.dart';
+import '../../../../data/models/hotel.dart';
 import '../screens/booking_information_screen.dart';
 
 class RoomCard extends StatelessWidget {
-  final Room room;  // This is fine - it's from the imported room.dart
-  final User hotel;
+  final Room room;
+  final Hotel hotel;
 
   const RoomCard({super.key, required this.room, required this.hotel});
 

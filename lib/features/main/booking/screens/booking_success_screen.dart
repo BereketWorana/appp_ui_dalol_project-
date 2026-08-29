@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import '../../../../data/models/user.dart';  // Changed
+import '../../../../data/models/hotel.dart';
 import 'hotel_details_screen.dart';
+
 class BookingSuccessScreen extends StatefulWidget {
-  final User hotel;
+  final Hotel hotel;
   final String? bookingReference;
 
   const BookingSuccessScreen({
@@ -61,7 +62,7 @@ class _BookingSuccessScreenState extends State<BookingSuccessScreen> {
             ),
             const SizedBox(height: 12),
             Text(
-              "Your request has been sent to ${widget.hotel.fullName}",
+              "Your request has been sent to ${widget.hotel.name}",
               textAlign: TextAlign.center,
               style: const TextStyle(color: Colors.white70, fontSize: 16),
             ),

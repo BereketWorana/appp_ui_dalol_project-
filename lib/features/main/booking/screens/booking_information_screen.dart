@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import '../../../../data/models/user.dart';
+import '../../../../data/models/hotel.dart';
 import '../../../../data/models/room.dart';
 import '../../../../core/services/auth_service.dart';
 import '../../../../data/repositories/booking_repository.dart';
 import 'booking_success_screen.dart';
 
 class BookingInformationScreen extends StatefulWidget {
-  final User hotel;
+  final Hotel hotel;
   final Room room;
 
   const BookingInformationScreen({
@@ -122,6 +122,7 @@ class _BookingInformationScreenState extends State<BookingInformationScreen> {
       print('🔄 Booking Response: $response');
 
       if (response['success'] == true) {
+        if (!mounted) return;
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
@@ -176,7 +177,7 @@ class _BookingInformationScreenState extends State<BookingInformationScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              widget.hotel.fullName,
+              widget.hotel.name,
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 24,
