@@ -153,15 +153,6 @@ class Post {
   // ============================================================
 
   factory Post.fromJson(Map<String, dynamic> json) {
-    String mediaUrl = '';
-    if (json['media_urls'] is List && (json['media_urls'] as List).isNotEmpty) {
-      mediaUrl = (json['media_urls'] as List).first?.toString() ?? '';
-    } else if (json['mediaUrl'] != null) {
-      mediaUrl = json['mediaUrl'].toString();
-    } else if (json['media_url'] != null) {
-      mediaUrl = json['media_url'].toString();
-    }
-
     return Post(
       id: _toInt(json['id']),
       ownerId: _toInt(json['ownerId']),
@@ -170,7 +161,7 @@ class Post {
       ownerRole: json['ownerRole']?.toString() ?? 'consumer',
       ownerUsername: json['ownerUsername']?.toString() ?? '',
       hotelId: _toIntOrNull(json['hotelId']),
-      mediaUrl: mediaUrl,
+      mediaUrl: json['mediaUrl']?.toString() ?? '',
       mediaType: json['mediaType']?.toString() ?? 'video',
       thumbnail: json['thumbnail']?.toString() ?? '',
       caption: json['caption']?.toString() ?? '',
