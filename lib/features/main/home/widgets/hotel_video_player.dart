@@ -27,6 +27,7 @@ class HotelVideoPlayerState extends State<HotelVideoPlayer> {
   // ============================================================
 
   bool initialized = false;
+  bool videoError = false;
 
   // ============================================================
   // PLAY / PAUSE ICON
@@ -87,6 +88,7 @@ class HotelVideoPlayerState extends State<HotelVideoPlayer> {
 
       setState(() {
         initialized = false;
+        videoError = true;
       });
     }
   }
@@ -194,6 +196,22 @@ class HotelVideoPlayerState extends State<HotelVideoPlayer> {
     // ==========================================================
     // LOADING
     // ==========================================================
+
+    if (videoError) {
+      return Container(
+        color: Colors.black,
+        child: const Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.video_library_outlined, color: Colors.white54, size: 60),
+              SizedBox(height: 10),
+              Text('Video unavailable', style: TextStyle(color: Colors.white54)),
+            ],
+          ),
+        ),
+      );
+    }
 
     if (!initialized) {
       return const Center(
