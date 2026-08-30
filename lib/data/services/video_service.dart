@@ -61,7 +61,11 @@ class VideoService {
     for (final item in rawData) {
       if (item is Map) {
         try {
-          result.add(Video.fromJson(Map<String, dynamic>.from(item)));
+          final video = Video.fromJson(Map<String, dynamic>.from(item));
+          if (video.mediaUrls.isNotEmpty &&
+              !video.mediaUrls.first.contains('1787385729_f6f5ff8e2cb78978.mp4')) {
+            result.add(video);
+          }
         } catch (e) {
           print("Video parse error: $e");
         }
