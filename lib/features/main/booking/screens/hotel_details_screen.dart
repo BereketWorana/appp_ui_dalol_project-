@@ -1,85 +1,61 @@
 import 'package:flutter/material.dart';
 import '../../../../data/models/hotel.dart';
-import '../../../../data/models/room.dart' as models;
-import '../../../../data/repositories/room_repository.dart';
+import '../../../../data/models/room.dart';
+import '../../../../data/services/room_service.dart';
 import '../widgets/room_card.dart';
-
-import '../../../../data/dummy/room_dummy.dart' as dummy_data;
 
 class HotelDetailScreen extends StatefulWidget {
   final Hotel hotel;
+  final List<Room>? initialRooms;
 
-  const HotelDetailScreen({super.key, required this.hotel});
+  const HotelDetailScreen({
+    super.key,
+    required this.hotel,
+    this.initialRooms,
+  });
 
   @override
   State<HotelDetailScreen> createState() => _HotelDetailScreenState();
 }
 
 class _HotelDetailScreenState extends State<HotelDetailScreen> {
-  List<models.Room> _rooms = [];
+  List<Room> _rooms = [];
   bool _isLoading = true;
   String? _error;
-  String _debugInfo = '';
-
-  // Use dates that we know work from the API test
-  final String _checkIn = '2026-09-01';
-  final String _checkOut = '2026-09-05';
 
   @override
   void initState() {
     super.initState();
-    _loadRooms();
+    if (widget.initialRooms != null && widget.initialRooms!.isNotEmpty) {
+      _rooms = widget.initialRooms!;
+      _isLoading = false;
+    } else {
+      _loadRooms();
+    }
   }
 
   Future<void> _loadRooms() async {
     setState(() {
       _isLoading = true;
       _error = null;
-      _debugInfo = '';
     });
 
     try {
-      print('🔍 ===== STARTING ROOM LOAD =====');
-      print('🔍 Hotel: ${widget.hotel.name}');
-      print('🔍 Hotel ID: ${widget.hotel.id}');
-
-      final response = await RoomRepository.checkAvailabilityByHotel(
-        hotelId: widget.hotel.id,
-        checkIn: _checkIn,
-        checkOut: _checkOut,
-        rooms: 1,
-      );
-
-      if (response['success'] == true) {
-        final roomsData = response['available_rooms'];
-        if (roomsData != null && roomsData is List && roomsData.isNotEmpty) {
-          final List<models.Room> parsedRooms = [];
-          for (var data in roomsData) {
-            try {
-              final room = models.Room.fromJson(data);
-              parsedRooms.add(room);
-            } catch (e) {
-              print('❌ Failed to parse room: $e');
-            }
-          }
-          if (parsedRooms.isNotEmpty) {
-            setState(() {
-              _rooms = parsedRooms;
-              _isLoading = false;
-            });
-            return;
-          }
-        }
+      final rooms = await RoomService.getRoomsByHotel(widget.hotel.id);
+      if (mounted) {
+        setState(() {
+          _rooms = rooms;
+          _isLoading = false;
+        });
       }
     } catch (e) {
-      print('❌ Room API load exception: $e');
+      if (mounted) {
+        setState(() {
+          _error = 'Failed to load room details';
+          _isLoading = false;
+        });
+      }
     }
-
-    // Fallback to hardcoded dummy rooms so booking always works smoothly
-    setState(() {
-      _rooms = dummy_data.rooms;
-      _isLoading = false;
-    });
   }
 
   @override
@@ -229,12 +205,6 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
                           textAlign: TextAlign.center,
                         ),
                       ),
-                      const SizedBox(height: 12),
-                      Text(
-                        _debugInfo,
-                        style: const TextStyle(color: Colors.white38, fontSize: 12),
-                        textAlign: TextAlign.center,
-                      ),
                       const SizedBox(height: 16),
                       ElevatedButton(
                         onPressed: _loadRooms,
@@ -259,12 +229,6 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
                       const Text(
                         'No rooms available',
                         style: TextStyle(color: Colors.white54, fontSize: 18),
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        _debugInfo,
-                        style: const TextStyle(color: Colors.white38, fontSize: 12),
-                        textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 16),
                       ElevatedButton(
