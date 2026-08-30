@@ -67,9 +67,14 @@ class Video {
     if (json["media_urls"] is List) {
       for (final item in json["media_urls"]) {
         if (item != null) {
-          final value = item.toString().trim();
+          var value = item.toString().trim();
 
           if (value.isNotEmpty) {
+            if (!value.startsWith('http') && !value.startsWith('assets/')) {
+              value = value.startsWith('/')
+                  ? 'https://booking.dalloltech.com$value'
+                  : 'https://booking.dalloltech.com/$value';
+            }
             media.add(value);
           }
         }
