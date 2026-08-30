@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import '../../../../core/services/auth_service.dart';
 import '../../../../data/models/hotel.dart';
 import '../../../../data/models/room.dart';
 import '../../../../data/services/room_service.dart';
 import '../widgets/room_card.dart';
+import 'add_room_screen.dart';
 
 class HotelDetailScreen extends StatefulWidget {
   final Hotel hotel;
@@ -60,6 +62,8 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isHotelOwner = AuthService.currentUser?.isMerchant == true;
+
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
@@ -170,13 +174,53 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
                       ),
                     ),
                     const SizedBox(height: 30),
-                    const Text(
-                      "Available Rooms",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 21,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          "Available Rooms",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 21,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        if (isHotelOwner)
+                          ElevatedButton.icon(
+                            onPressed: () async {
+                              final result = await Navigator.push<bool>(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => AddRoomScreen(
+                                    hotelId: widget.hotel.id,
+                                  ),
+                                ),
+                              );
+                              if (result == true) {
+                                _loadRooms();
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.pink.shade600,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 8,
+                              ),
+                            ),
+                            icon: const Icon(Icons.add, size: 18),
+                            label: const Text(
+                              "Add Room",
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                     const SizedBox(height: 15),
                   ],
