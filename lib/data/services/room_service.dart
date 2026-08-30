@@ -242,4 +242,54 @@ class RoomService {
       throw Exception(message);
     }
   }
+
+  // ============================================================
+  // UPDATE ROOM STATUS
+  // ============================================================
+
+  /// Updates room operational status (available, occupied, maintenance, cleaning, reserved).
+  /// POST /api/rooms/{id}/update-status (requireAuth: true)
+  /// Body: {"status": status}
+  ///
+  /// Throws exception on error so calling UI can display real error SnackBar.
+  static Future<Map<String, dynamic>> updateRoomStatus(
+    int roomId,
+    String status,
+  ) async {
+    debugPrint('🏨 Updating status for room ID: $roomId to "$status"');
+
+    final response = await ApiService.post(
+      '/rooms/$roomId/update-status',
+      body: {'status': status},
+      requireAuth: true,
+    );
+
+    debugPrint('📥 Response for updateRoomStatus($roomId): $response');
+
+    if (response['success'] == false) {
+      String errorMessage = response['message']?.toString() ?? 'Failed to update status';
+      final rawErrors = response['errors'];
+      if (rawErrors is Map && rawErrors.isNotEmpty) {
+        final errList = <String>[];
+        rawErrors.forEach((key, val) {
+          if (val is List) {
+            errList.add('$key: ${val.join(", ")}');
+          } else {
+            errList.add('$key: $val');
+          }
+        });
+        if (errList.isNotEmpty) {
+          errorMessage = errList.join('\n');
+        }
+      }
+      throw Exception(errorMessage);
+    }
+
+    final data = response['data'];
+    if (data is Map<String, dynamic>) {
+      return data;
+    }
+
+    return response;
+  }
 }

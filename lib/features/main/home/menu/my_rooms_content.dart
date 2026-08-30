@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../../../core/services/auth_service.dart';
 import '../../../../data/models/room.dart';
 import '../../../../data/services/room_service.dart';
 import '../../../main/booking/screens/add_room_screen.dart';
+import '../../../main/booking/screens/register_hotel_screen.dart';
 
 // ================================================================
 // MY ROOMS CONTENT — Hotel Owner Room Management
@@ -189,10 +189,22 @@ class _MyRoomsContentState extends State<MyRoomsContent> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.hotel_outlined, color: Colors.white24, size: 60),
-              const SizedBox(height: 16),
+              Container(
+                width: 72,
+                height: 72,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.06),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.hotel_outlined,
+                  color: Colors.white38,
+                  size: 36,
+                ),
+              ),
+              const SizedBox(height: 20),
               const Text(
-                'Hotel Link Required',
+                'No Hotel Linked',
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 20,
@@ -201,18 +213,48 @@ class _MyRoomsContentState extends State<MyRoomsContent> {
               ),
               const SizedBox(height: 10),
               const Text(
-                'Your hotel ID is not included in the session data yet. '
-                'This is a known backend limitation — the login response '
-                'does not return hotel_id. Once fixed, this screen will '
-                'automatically load your rooms.',
-                style: TextStyle(color: Colors.white54, fontSize: 14, height: 1.5),
+                'Your account isn\'t linked to a hotel yet. '
+                'Register your hotel to start managing rooms and bookings.',
+                style: TextStyle(color: Colors.white54, fontSize: 14, height: 1.6),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 24),
-              const Text(
-                'In the meantime, you can add rooms by opening a hotel from the feed.',
-                style: TextStyle(color: Colors.white38, fontSize: 13),
-                textAlign: TextAlign.center,
+              const SizedBox(height: 28),
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const RegisterHotelScreen(),
+                    ),
+                  );
+                },
+                child: Container(
+                  width: double.infinity,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Colors.pink.shade400, Colors.pink.shade600],
+                    ),
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.pink.withValues(alpha: 0.35),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: const Center(
+                    child: Text(
+                      'Register Your Hotel',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
@@ -345,6 +387,123 @@ class _MyRoomsContentState extends State<MyRoomsContent> {
   }
 
   // ----------------------------------------------------------------
+  // UPDATE ROOM STATUS
+  // ----------------------------------------------------------------
+  Future<void> _showStatusPicker(Room room) async {
+    final allowedStatuses = [
+      'available',
+      'occupied',
+      'maintenance',
+      'cleaning',
+      'reserved',
+    ];
+
+    final selected = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: const Color(0xFF181818),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  child: Text(
+                    'Select Operational Status',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                ...allowedStatuses.map((st) {
+                  final isCurrent = room.status.toLowerCase() == st;
+                  return ListTile(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    tileColor: isCurrent
+                        ? Colors.pink.shade400.withValues(alpha: 0.15)
+                        : null,
+                    leading: Icon(
+                      _getStatusIcon(st),
+                      color: isCurrent ? Colors.pink.shade400 : Colors.white70,
+                    ),
+                    title: Text(
+                      st[0].toUpperCase() + st.substring(1),
+                      style: TextStyle(
+                        color: isCurrent ? Colors.pink.shade300 : Colors.white,
+                        fontWeight:
+                            isCurrent ? FontWeight.bold : FontWeight.normal,
+                      ),
+                    ),
+                    trailing: isCurrent
+                        ? Icon(Icons.check_circle, color: Colors.pink.shade400)
+                        : null,
+                    onTap: () => Navigator.pop(context, st),
+                  );
+                }),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    if (selected == null || selected == room.status || !mounted) return;
+
+    try {
+      await RoomService.updateRoomStatus(room.id, selected);
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Room status updated to "$selected"'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      _loadRooms();
+    } catch (e) {
+      if (!mounted) return;
+
+      final msg = e.toString().replaceAll('Exception: ', '');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Failed to update status: ${msg.isNotEmpty ? msg : "Unknown error"}',
+          ),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    }
+  }
+
+  IconData _getStatusIcon(String status) {
+    switch (status.toLowerCase()) {
+      case 'available':
+        return Icons.check_circle_outline;
+      case 'occupied':
+        return Icons.person_outline;
+      case 'maintenance':
+        return Icons.build_outlined;
+      case 'cleaning':
+        return Icons.cleaning_services_outlined;
+      case 'reserved':
+        return Icons.bookmark_border;
+      default:
+        return Icons.info_outline;
+    }
+  }
+
+  // ----------------------------------------------------------------
   // ROOM CARD
   // ----------------------------------------------------------------
   Widget _buildRoomCard(Room room) {
@@ -399,10 +558,26 @@ class _MyRoomsContentState extends State<MyRoomsContent> {
 
           const SizedBox(height: 6),
 
-          // Room type / bed type
-          Text(
-            room.bedType.isNotEmpty ? 'Bed: ${room.bedType}' : 'Room #${room.roomNumber}',
-            style: const TextStyle(color: Colors.white54, fontSize: 14),
+          // Room type / bed type & operational status indicator
+          Row(
+            children: [
+              Text(
+                room.bedType.isNotEmpty ? 'Bed: ${room.bedType}' : 'Room #${room.roomNumber}',
+                style: const TextStyle(color: Colors.white54, fontSize: 14),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  'Status: ${room.status}',
+                  style: const TextStyle(color: Colors.white70, fontSize: 11),
+                ),
+              ),
+            ],
           ),
 
           const SizedBox(height: 8),
@@ -442,27 +617,50 @@ class _MyRoomsContentState extends State<MyRoomsContent> {
             children: [
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: () => _openEditRoom(room),
-                  icon: const Icon(Icons.edit_outlined, size: 16),
-                  label: const Text('Edit'),
+                  onPressed: () => _showStatusPicker(room),
+                  icon: const Icon(Icons.sync_alt, size: 14),
+                  label: Text(
+                    room.status.isNotEmpty
+                        ? room.status[0].toUpperCase() + room.status.substring(1)
+                        : 'Status',
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.white70,
-                    side: const BorderSide(color: Colors.white24),
+                    foregroundColor: Colors.pink.shade300,
+                    side: BorderSide(color: Colors.pink.shade400.withValues(alpha: 0.4)),
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
                   ),
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 6),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => _openEditRoom(room),
+                  icon: const Icon(Icons.edit_outlined, size: 14),
+                  label: const Text('Edit'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.white70,
+                    side: const BorderSide(color: Colors.white24),
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
               Expanded(
                 child: ElevatedButton.icon(
                   onPressed: () => _deleteRoom(room),
-                  icon: const Icon(Icons.delete_outline, size: 16),
+                  icon: const Icon(Icons.delete_outline, size: 14),
                   label: const Text('Delete'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.red.shade700,
                     foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
