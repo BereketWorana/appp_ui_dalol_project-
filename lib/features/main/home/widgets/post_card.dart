@@ -100,12 +100,46 @@ class _PostCardState extends State<PostCard> with SingleTickerProviderStateMixin
       child: Stack(
         fit: StackFit.expand,
         children: [
-          // VIDEO
-          HotelVideoPlayer(
-            key: videoKey,
-            video: widget.post.mediaUrl,
-            isActive: widget.isActive,
-          ),
+          // MEDIA (IMAGE OR VIDEO)
+          if (widget.post.isVideo)
+            HotelVideoPlayer(
+              key: videoKey,
+              video: widget.post.mediaUrl,
+              isActive: widget.isActive,
+            )
+          else
+            SizedBox.expand(
+              child: widget.post.mediaUrl.startsWith('http')
+                  ? Image.network(
+                      widget.post.mediaUrl,
+                      fit: BoxFit.cover,
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return const Center(
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        );
+                      },
+                      errorBuilder: (_, __, ___) => Container(
+                        color: Colors.black,
+                        child: const Center(
+                          child: Icon(Icons.broken_image, color: Colors.white54, size: 60),
+                        ),
+                      ),
+                    )
+                  : Image.asset(
+                      widget.post.mediaUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Container(
+                        color: Colors.black,
+                        child: const Center(
+                          child: Icon(Icons.broken_image, color: Colors.white54, size: 60),
+                        ),
+                      ),
+                    ),
+            ),
 
           // GRADIENT
           IgnorePointer(
