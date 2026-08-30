@@ -70,15 +70,12 @@ class FeedService {
             .map((item) => Post.fromJson(item as Map<String, dynamic>))
             .toList();
 
-        // --------------------------------------------------------
-        // [REMOVE WHEN API SEEDED] Fallback to mock data
-        // --------------------------------------------------------
-        if (posts.isEmpty && offset == 0) {
-          debugPrint('Using mock data because API returned empty list');
-          return FeedResult(posts: mockPosts, hasMore: false);
-        }
+        // Combine live API posts with offline mock posts so more videos are always available
+        final existingIds = posts.map((p) => p.id).toSet();
+        final additionalMock = mockPosts.where((p) => !existingIds.contains(p.id)).toList();
+        final combinedPosts = [...posts, ...additionalMock];
 
-        return FeedResult(posts: posts, hasMore: hasMore);
+        return FeedResult(posts: combinedPosts, hasMore: hasMore);
       }
 
       // Handle specific errors

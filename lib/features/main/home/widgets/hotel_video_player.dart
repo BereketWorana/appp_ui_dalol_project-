@@ -215,11 +215,13 @@ class HotelVideoPlayerState extends State<HotelVideoPlayer> {
         SizedBox.expand(
           child: FittedBox(
             fit: BoxFit.cover,
-
-            child: AspectRatio(
-              aspectRatio: controller.value.aspectRatio > 0 
-                  ? controller.value.aspectRatio 
-                  : 16 / 9,
+            child: SizedBox(
+              width: controller.value.size.width > 0
+                  ? controller.value.size.width
+                  : 1920,
+              height: controller.value.size.height > 0
+                  ? controller.value.size.height
+                  : 1080,
               child: VideoPlayer(controller),
             ),
           ),

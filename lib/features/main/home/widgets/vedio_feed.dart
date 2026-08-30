@@ -121,17 +121,13 @@ class _HotelFeedItemState extends State<HotelFeedItem>
     try {
       debugPrint("VIDEO URL: $videoUrl");
 
-      final uri = Uri.tryParse(videoUrl);
-
-      if (uri == null) {
-        throw Exception("Invalid video URL");
-      }
-
-      final videoController = VideoPlayerController.networkUrl(uri);
+      final videoController = videoUrl.startsWith('http')
+          ? VideoPlayerController.networkUrl(Uri.parse(videoUrl))
+          : VideoPlayerController.asset(videoUrl);
 
       controller = videoController;
 
-      await videoController.initialize();
+      await videoController.initialize().timeout(const Duration(seconds: 10));
 
       if (!mounted) {
         videoController.dispose();
@@ -373,9 +369,10 @@ class _HotelFeedItemState extends State<HotelFeedItem>
         SizedBox.expand(
           child: FittedBox(
             fit: BoxFit.cover,
-            child: SizedBox(
-              width: videoController.value.size.width,
-              height: videoController.value.size.height,
+            child: AspectRatio(
+              aspectRatio: (videoController.value.aspectRatio > 0)
+                  ? videoController.value.aspectRatio
+                  : 9 / 16,
               child: VideoPlayer(videoController),
             ),
           ),
