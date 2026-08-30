@@ -162,6 +162,32 @@ class Post {
       mediaUrl = json['media_url'].toString();
     }
 
+    if (mediaUrl.isNotEmpty && !mediaUrl.startsWith('http') && !mediaUrl.startsWith('assets/')) {
+      if (mediaUrl.startsWith('/')) {
+        mediaUrl = 'https://booking.dalloltech.com$mediaUrl';
+      } else {
+        mediaUrl = 'https://booking.dalloltech.com/$mediaUrl';
+      }
+    }
+
+    String ownerAvatar = json['ownerAvatar']?.toString() ?? json['user_avatar']?.toString() ?? '';
+    if (ownerAvatar.isNotEmpty && !ownerAvatar.startsWith('http') && !ownerAvatar.startsWith('assets/')) {
+      if (ownerAvatar.startsWith('/')) {
+        ownerAvatar = 'https://booking.dalloltech.com$ownerAvatar';
+      } else {
+        ownerAvatar = 'https://booking.dalloltech.com/$ownerAvatar';
+      }
+    }
+
+    String thumbnail = json['thumbnail']?.toString() ?? json['thumbnail_url']?.toString() ?? '';
+    if (thumbnail.isNotEmpty && !thumbnail.startsWith('http') && !thumbnail.startsWith('assets/')) {
+      if (thumbnail.startsWith('/')) {
+        thumbnail = 'https://booking.dalloltech.com$thumbnail';
+      } else {
+        thumbnail = 'https://booking.dalloltech.com/$thumbnail';
+      }
+    }
+
     return Post(
       id: _toInt(json['id']),
       ownerId: _toInt(json['ownerId'] ?? json['user_id']),
