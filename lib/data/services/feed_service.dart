@@ -68,6 +68,9 @@ class FeedService {
 
         final posts = rawList
             .map((item) => Post.fromJson(item as Map<String, dynamic>))
+            .where((post) =>
+                post.mediaUrl.isNotEmpty &&
+                !post.mediaUrl.contains('1787385729_f6f5ff8e2cb78978.mp4'))
             .toList();
 
         // Combine live API posts with offline mock posts so more videos are always available
