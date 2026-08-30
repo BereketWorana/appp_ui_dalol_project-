@@ -68,7 +68,7 @@ class User {
       phone: phone,
       email: email,
       password: password,
-      role: _normalizeRole(role),
+      role: normalizeRole(role),
       profileImage: profileImage,
       coverImage: coverImage,
     );
@@ -122,11 +122,13 @@ class User {
   // ============================================================
 
   // Normalize role to match app's role system
-  static String _normalizeRole(String role) {
+  static String normalizeRole(String role) {
     final String lowerRole = role.toLowerCase();
     switch (lowerRole) {
       case 'merchant':
       case 'hotel_admin':
+      case 'hotel_owner':
+      case 'manager':
         return 'merchant';
       case 'influencer':
       case 'creator':

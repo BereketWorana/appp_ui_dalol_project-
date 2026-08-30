@@ -172,4 +172,74 @@ class RoomService {
 
     return [];
   }
+
+  // ============================================================
+  // UPDATE ROOM
+  // ============================================================
+
+  /// Updates an existing room by ID.
+  /// PUT /api/rooms/{roomId} (requireAuth: true)
+  ///
+  /// [updates] can include any subset of: name, price_per_night,
+  /// remaining_rooms, max_occupancy, bed_type, description, room_type_id.
+  ///
+  /// IMPORTANT: Backend returns HTTP 200 even on failure.
+  /// Always parse success field from JSON body — never trust the HTTP status.
+  ///
+  /// Throws exception on error so calling UI can display real error SnackBar.
+  static Future<Map<String, dynamic>> updateRoom(
+    int roomId,
+    Map<String, dynamic> updates,
+  ) async {
+    debugPrint('🏨 Updating room ID: $roomId with $updates');
+
+    final response = await ApiService.put(
+      '/rooms/$roomId',
+      body: updates,
+      requireAuth: true,
+    );
+
+    debugPrint('📥 Response for updateRoom($roomId): $response');
+
+    // Backend returns HTTP 200 even on failure — check success field explicitly.
+    if (response['success'] == false) {
+      final message = response['message']?.toString() ?? 'Failed to update room';
+      throw Exception(message);
+    }
+
+    final data = response['data'];
+    if (data is Map<String, dynamic>) {
+      return data;
+    }
+
+    return response;
+  }
+
+  // ============================================================
+  // DELETE ROOM
+  // ============================================================
+
+  /// Deletes a room by ID.
+  /// DELETE /api/rooms/{roomId} (requireAuth: true)
+  ///
+  /// IMPORTANT: Backend returns HTTP 200 even on failure.
+  /// Always parse success field from JSON body — never trust the HTTP status.
+  ///
+  /// Throws exception on error so calling UI can display real error SnackBar.
+  static Future<void> deleteRoom(int roomId) async {
+    debugPrint('🏨 Deleting room ID: $roomId');
+
+    final response = await ApiService.delete(
+      '/rooms/$roomId',
+      requireAuth: true,
+    );
+
+    debugPrint('📥 Response for deleteRoom($roomId): $response');
+
+    // Backend returns HTTP 200 even on failure — check success field explicitly.
+    if (response['success'] == false) {
+      final message = response['message']?.toString() ?? 'Failed to delete room';
+      throw Exception(message);
+    }
+  }
 }

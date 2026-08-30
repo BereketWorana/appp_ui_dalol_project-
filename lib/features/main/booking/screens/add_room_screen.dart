@@ -1,13 +1,19 @@
 import 'package:flutter/material.dart';
+import '../../../../data/models/room.dart';
 import '../../../../data/models/room_type.dart';
 import '../../../../data/services/room_service.dart';
 
 class AddRoomScreen extends StatefulWidget {
   final int hotelId;
 
+  /// If provided, the screen operates in "edit mode":
+  /// all fields are pre-populated and Save calls updateRoom instead of createRoom.
+  final Room? editRoom;
+
   const AddRoomScreen({
     super.key,
     required this.hotelId,
+    this.editRoom,
   });
 
   @override
@@ -30,11 +36,26 @@ class _AddRoomScreenState extends State<AddRoomScreen> {
   bool _isLoadingTypes = true;
   bool _isSubmitting = false;
   String? _typesError;
+  // Set when editing and the room's original type ID is not found in the
+  // loaded type list — forces user to manually pick a type.
+  String? _roomTypeWarning;
+
+  bool get _isEditMode => widget.editRoom != null;
 
   @override
   void initState() {
     super.initState();
     _loadRoomTypes();
+    // Pre-populate fields when editing an existing room
+    if (_isEditMode) {
+      final r = widget.editRoom!;
+      _nameController.text = r.name;
+      _priceController.text = r.pricePerNight.toStringAsFixed(2);
+      _remainingController.text = r.remainingRooms.toString();
+      _occupancyController.text = r.maxOccupancy.toString();
+      _bedTypeController.text = r.bedType;
+      _descriptionController.text = r.description ?? '';
+    }
   }
 
   Future<void> _loadRoomTypes() async {
@@ -48,7 +69,24 @@ class _AddRoomScreenState extends State<AddRoomScreen> {
       if (mounted) {
         setState(() {
           _roomTypes = types;
-          if (types.isNotEmpty) {
+          if (_isEditMode) {
+            // Try to match the existing room's type from the loaded list.
+            // If no match: leave _selectedRoomType null and warn the user
+            // explicitly — do NOT silently default to types.first, which
+            // would risk saving the wrong room type without the user knowing.
+            final match = types.where(
+              (t) => t.id == widget.editRoom!.roomTypeId,
+            );
+            if (match.isNotEmpty) {
+              _selectedRoomType = match.first;
+              _roomTypeWarning = null;
+            } else {
+              _selectedRoomType = null;
+              _roomTypeWarning =
+                  'Original room type (ID ${widget.editRoom!.roomTypeId}) '
+                  'is no longer available — please select a room type.';
+            }
+          } else if (types.isNotEmpty) {
             _selectedRoomType = types.first;
           }
           _isLoadingTypes = false;
@@ -117,25 +155,52 @@ class _AddRoomScreenState extends State<AddRoomScreen> {
     });
 
     try {
-      await RoomService.createRoom(
-        hotelId: widget.hotelId,
-        roomTypeId: _selectedRoomType!.id,
-        name: _nameController.text.trim(),
-        pricePerNight: price,
-        remainingRooms: remaining,
-        maxOccupancy: occupancy,
-        bedType: _bedTypeController.text.trim(),
-        description: _descriptionController.text.trim(),
-      );
+      if (_isEditMode) {
+        // ---- EDIT MODE: call updateRoom ----
+        await RoomService.updateRoom(
+          widget.editRoom!.id,
+          {
+            'name': _nameController.text.trim(),
+            'price_per_night': price,
+            'remaining_rooms': remaining,
+            'max_occupancy': occupancy,
+            'bed_type': _bedTypeController.text.trim(),
+            'description': _descriptionController.text.trim(),
+            if (_selectedRoomType != null)
+              'room_type_id': _selectedRoomType!.id,
+          },
+        );
 
-      if (!mounted) return;
+        if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Room created successfully!'),
-          backgroundColor: Colors.green,
-        ),
-      );
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Room updated successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        // ---- CREATE MODE: call createRoom ----
+        await RoomService.createRoom(
+          hotelId: widget.hotelId,
+          roomTypeId: _selectedRoomType!.id,
+          name: _nameController.text.trim(),
+          pricePerNight: price,
+          remainingRooms: remaining,
+          maxOccupancy: occupancy,
+          bedType: _bedTypeController.text.trim(),
+          description: _descriptionController.text.trim(),
+        );
+
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Room created successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
 
       Navigator.pop(context, true);
     } catch (e) {
@@ -144,7 +209,11 @@ class _AddRoomScreenState extends State<AddRoomScreen> {
       final errorMessage = e.toString().replaceAll('Exception: ', '');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Failed to add room: $errorMessage'),
+          content: Text(
+            _isEditMode
+                ? 'Failed to update room: $errorMessage'
+                : 'Failed to add room: $errorMessage',
+          ),
           backgroundColor: Colors.redAccent,
         ),
       );
@@ -163,7 +232,10 @@ class _AddRoomScreenState extends State<AddRoomScreen> {
       backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.black,
-        title: const Text('Add New Room', style: TextStyle(color: Colors.white)),
+        title: Text(
+          _isEditMode ? 'Edit Room' : 'Add New Room',
+          style: const TextStyle(color: Colors.white),
+        ),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: SafeArea(
@@ -183,9 +255,11 @@ class _AddRoomScreenState extends State<AddRoomScreen> {
                   ),
                 ),
                 const SizedBox(height: 6),
-                const Text(
-                  'Enter information to list a new room for this hotel.',
-                  style: TextStyle(color: Colors.white60, fontSize: 14),
+                Text(
+                  _isEditMode
+                      ? 'Update the details for this room.'
+                      : 'Enter information to list a new room for this hotel.',
+                  style: const TextStyle(color: Colors.white60, fontSize: 14),
                 ),
                 const SizedBox(height: 24),
 
@@ -195,6 +269,32 @@ class _AddRoomScreenState extends State<AddRoomScreen> {
                   style: TextStyle(color: Colors.white70, fontSize: 14),
                 ),
                 const SizedBox(height: 8),
+                // Warning shown in edit mode when original type is missing
+                if (_roomTypeWarning != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(
+                          Icons.warning_amber_rounded,
+                          color: Colors.orange,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _roomTypeWarning!,
+                            style: const TextStyle(
+                              color: Colors.orange,
+                              fontSize: 13,
+                              height: 1.4,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 if (_isLoadingTypes)
                   Container(
                     height: 52,
@@ -401,9 +501,9 @@ class _AddRoomScreenState extends State<AddRoomScreen> {
                                 strokeWidth: 2.5,
                               ),
                             )
-                          : const Text(
-                              'Save Room',
-                              style: TextStyle(
+                          : Text(
+                              _isEditMode ? 'Update Room' : 'Save Room',
+                              style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,

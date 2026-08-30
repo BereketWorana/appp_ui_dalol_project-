@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:fvp/fvp.dart' as fvp;
 import 'app/app.dart';
 import 'core/services/auth_service.dart';
-
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
+  // Registers fvp as the video_player backend ONLY on platforms without an
+  // official implementation (Linux, Windows). Android/iOS/web keep using
+  // their existing official video_player backends, untouched.
+  fvp.registerWith(options: {'platforms': ['linux', 'windows']});
   await AuthService.initialize();
 
   // ============================================================

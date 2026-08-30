@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
 
 import '../../../../data/models/user.dart';
-
+import '../../../../data/services/user_service.dart';
 import '../../messages/screens/messages_screen.dart';
 
 class PosterProfileScreen extends StatefulWidget {
-  final User user;
+  final User? user;
+  final int? userId;
 
-  const PosterProfileScreen({super.key, required this.user});
+  const PosterProfileScreen({
+    super.key,
+    this.user,
+    this.userId,
+  }) : assert(user != null || userId != null, 'Either user or userId must be provided');
 
   @override
   State<PosterProfileScreen> createState() => _PosterProfileScreenState();
@@ -19,6 +24,9 @@ class _PosterProfileScreenState extends State<PosterProfileScreen>
   // STATE
   // ============================================================
 
+  User? _loadedUser;
+  bool _isLoading = false;
+  String? _error;
   bool following = false;
 
   late TabController _tabController;
@@ -30,8 +38,45 @@ class _PosterProfileScreenState extends State<PosterProfileScreen>
   @override
   void initState() {
     super.initState();
-
     _tabController = TabController(length: 3, vsync: this);
+    _loadedUser = widget.user;
+    _fetchProfile();
+  }
+
+  Future<void> _fetchProfile() async {
+    final int? targetId = widget.userId ?? widget.user?.id;
+    if (targetId == null || targetId == 0) {
+      if (_loadedUser == null) {
+        setState(() {
+          _error = "Invalid user ID";
+        });
+      }
+      return;
+    }
+
+    setState(() {
+      _isLoading = _loadedUser == null;
+      _error = null;
+    });
+
+    try {
+      final fetchedUser = await UserService.getUserByIdFromApi(targetId);
+      if (mounted) {
+        setState(() {
+          _loadedUser = fetchedUser;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          if (_loadedUser == null) {
+            _error = e.toString().replaceAll('Exception: ', '');
+          }
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   // ============================================================
@@ -41,7 +86,6 @@ class _PosterProfileScreenState extends State<PosterProfileScreen>
   @override
   void dispose() {
     _tabController.dispose();
-
     super.dispose();
   }
 
@@ -50,10 +94,11 @@ class _PosterProfileScreenState extends State<PosterProfileScreen>
   // ============================================================
 
   void openMessage() {
+    if (_loadedUser == null) return;
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => MessagesScreen(selectedUser: widget.user),
+        builder: (_) => MessagesScreen(selectedUser: _loadedUser!),
       ),
     );
   }
@@ -63,13 +108,21 @@ class _PosterProfileScreenState extends State<PosterProfileScreen>
   // ============================================================
 
   Widget profileImage() {
-    final image = widget.user.profileImage;
+    final image = _loadedUser?.profileImage ?? '';
 
     if (image.isEmpty) {
       return const CircleAvatar(
         radius: 48,
         backgroundColor: Colors.white12,
         child: Icon(Icons.person, color: Colors.white, size: 45),
+      );
+    }
+
+    if (image.startsWith('http://') || image.startsWith('https://')) {
+      return CircleAvatar(
+        radius: 48,
+        backgroundColor: Colors.white12,
+        backgroundImage: NetworkImage(image),
       );
     }
 
@@ -85,7 +138,7 @@ class _PosterProfileScreenState extends State<PosterProfileScreen>
   // ============================================================
 
   Widget coverImage() {
-    final image = widget.user.coverImage;
+    final image = _loadedUser?.coverImage ?? '';
 
     if (image.isEmpty) {
       return Container(
@@ -95,24 +148,25 @@ class _PosterProfileScreenState extends State<PosterProfileScreen>
       );
     }
 
+    if (image.startsWith('http://') || image.startsWith('https://')) {
+      return SizedBox(
+        height: 115,
+        width: double.infinity,
+        child: Image.network(
+          image,
+          fit: BoxFit.cover,
+          errorBuilder: (_, _, _) => Container(color: const Color(0xFF181818)),
+        ),
+      );
+    }
+
     return SizedBox(
       height: 115,
       width: double.infinity,
       child: Image.asset(
         image,
         fit: BoxFit.cover,
-        errorBuilder: (_, _, _) {
-          return Container(
-            color: const Color(0xFF181818),
-            child: const Center(
-              child: Icon(
-                Icons.image_not_supported_outlined,
-                color: Colors.white38,
-                size: 35,
-              ),
-            ),
-          );
-        },
+        errorBuilder: (_, _, _) => Container(color: const Color(0xFF181818)),
       ),
     );
   }
@@ -123,8 +177,62 @@ class _PosterProfileScreenState extends State<PosterProfileScreen>
 
   @override
   Widget build(BuildContext context) {
-    final bool isMerchant = widget.user.role == "merchant";
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: Colors.black,
+        appBar: AppBar(
+          backgroundColor: Colors.black,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: () => Navigator.pop(context),
+          ),
+          iconTheme: const IconThemeData(color: Colors.white),
+        ),
+        body: const Center(
+          child: CircularProgressIndicator(color: Colors.yellow),
+        ),
+      );
+    }
 
+    if (_error != null && _loadedUser == null) {
+      return Scaffold(
+        backgroundColor: Colors.black,
+        appBar: AppBar(
+          backgroundColor: Colors.black,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: () => Navigator.pop(context),
+          ),
+          iconTheme: const IconThemeData(color: Colors.white),
+        ),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline, color: Colors.redAccent, size: 48),
+                const SizedBox(height: 16),
+                Text(
+                  _error!,
+                  style: const TextStyle(color: Colors.white70, fontSize: 16),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: _fetchProfile,
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.yellow),
+                  child: const Text('Retry', style: TextStyle(color: Colors.black)),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    final user = _loadedUser!;
+    final bool isMerchant = user.role == "merchant";
     final String displayRole = isMerchant ? "Hotel" : "Creator";
 
     return Scaffold(
@@ -158,6 +266,18 @@ class _PosterProfileScreenState extends State<PosterProfileScreen>
                         ),
 
                         Positioned(
+                          left: 10,
+                          top: 10,
+                          child: CircleAvatar(
+                            backgroundColor: Colors.black54,
+                            child: IconButton(
+                              icon: const Icon(Icons.arrow_back, color: Colors.white),
+                              onPressed: () => Navigator.pop(context),
+                            ),
+                          ),
+                        ),
+
+                        Positioned(
                           left: 20,
                           bottom: -45,
                           child: profileImage(),
@@ -184,7 +304,7 @@ class _PosterProfileScreenState extends State<PosterProfileScreen>
                             children: [
                               Expanded(
                                 child: Text(
-                                  widget.user.fullName,
+                                  user.fullName,
 
                                   maxLines: 1,
 

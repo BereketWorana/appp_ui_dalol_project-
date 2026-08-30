@@ -110,6 +110,110 @@ class ApiService {
   }
 
   // ============================================================
+  // PUT REQUEST
+  // ============================================================
+
+  static Future<Map<String, dynamic>> put(
+    String endpoint, {
+    Map<String, dynamic>? body,
+    bool requireAuth = false,
+  }) async {
+    try {
+      final uri = Uri.parse('$baseUrl$endpoint');
+
+      final headers = <String, String>{
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      };
+
+      if (requireAuth && AuthService.hasValidToken) {
+        headers['Authorization'] = 'Bearer ${AuthService.accessToken}';
+      }
+
+      print('📤 PUT: $uri');
+      print('📤 Body: ${jsonEncode(body)}');
+
+      final response = await http
+          .put(
+            uri,
+            headers: headers,
+            body: jsonEncode(body),
+          )
+          .timeout(
+            const Duration(seconds: 30),
+            onTimeout: () {
+              throw Exception('Connection timeout. Please try again.');
+            },
+          );
+
+      print('📥 PUT Status: ${response.statusCode}');
+      print('📥 PUT Body: ${response.body}');
+
+      return _handleResponse(response);
+    } on http.ClientException catch (e) {
+      print('❌ PUT Client Exception: $e');
+      return {
+        'success': false,
+        'message': 'Unable to connect to server. Please check your internet connection.',
+        'error': e.toString(),
+      };
+    } catch (e) {
+      print('❌ PUT Error: $e');
+      return {
+        'success': false,
+        'message': 'Request failed: $e',
+        'error': e.toString(),
+      };
+    }
+  }
+
+  // ============================================================
+  // DELETE REQUEST
+  // ============================================================
+
+  static Future<Map<String, dynamic>> delete(
+    String endpoint, {
+    bool requireAuth = false,
+  }) async {
+    try {
+      final uri = Uri.parse('$baseUrl$endpoint');
+
+      final headers = <String, String>{
+        'Accept': 'application/json',
+      };
+
+      if (requireAuth && AuthService.hasValidToken) {
+        headers['Authorization'] = 'Bearer ${AuthService.accessToken}';
+      }
+
+      print('📤 DELETE: $uri');
+
+      final response = await http
+          .delete(uri, headers: headers)
+          .timeout(const Duration(seconds: 30));
+
+      print('📥 DELETE Status: ${response.statusCode}');
+      print('📥 DELETE Body: ${response.body}');
+
+      return _handleResponse(response);
+    } on http.ClientException catch (e) {
+      print('❌ DELETE Client Exception: $e');
+      return {
+        'success': false,
+        'message': 'Unable to connect to server. Please check your internet connection.',
+        'error': e.toString(),
+      };
+    } catch (e) {
+      print('❌ DELETE Error: $e');
+      return {
+        'success': false,
+        'message': 'Request failed: $e',
+        'error': e.toString(),
+      };
+    }
+  }
+
+  // ============================================================
   // HANDLE RESPONSE
   // ============================================================
   

@@ -119,14 +119,22 @@ class _BookingInformationScreenState extends State<BookingInformationScreen> {
         userId: AuthService.isLoggedIn ? AuthService.userId : null, // Optional
       );
 
-      print('🔄 Booking Response: $response');
+      debugPrint('🔄 Booking Response: $response');
 
-      String bookingRef =
-          'BK-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
-      if (response['success'] == true &&
-          response['booking_reference'] != null) {
-        bookingRef = response['booking_reference'].toString();
+      if (response['success'] != true) {
+        final serverMessage = response['message']?.toString();
+        _showError(
+          (serverMessage != null && serverMessage.isNotEmpty)
+              ? serverMessage
+              : 'Booking failed. Please try again.',
+        );
+        return;
       }
+
+      final bookingRef = response['booking_reference']?.toString() ??
+          response['data']?['booking_reference']?.toString() ??
+          response['data']?['reference']?.toString() ??
+          '';
 
       if (!mounted) return;
       Navigator.pushReplacement(
@@ -134,22 +142,18 @@ class _BookingInformationScreenState extends State<BookingInformationScreen> {
         MaterialPageRoute(
           builder: (_) => BookingSuccessScreen(
             hotel: widget.hotel,
-            bookingReference: bookingRef,
+            bookingReference: bookingRef.isNotEmpty ? bookingRef : null,
           ),
         ),
       );
     } catch (e) {
-      print('❌ Booking API error, falling back to dummy confirmation: $e');
+      debugPrint('❌ Booking API error: $e');
       if (!mounted) return;
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => BookingSuccessScreen(
-            hotel: widget.hotel,
-            bookingReference:
-                'BK-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}',
-          ),
-        ),
+      final errorMessage = e.toString().replaceAll('Exception: ', '');
+      _showError(
+        (errorMessage.isNotEmpty && !errorMessage.startsWith('Instance of'))
+            ? errorMessage
+            : 'Booking failed. Please check your connection and try again.',
       );
     } finally {
       if (mounted) {

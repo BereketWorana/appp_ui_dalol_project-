@@ -90,7 +90,7 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
                         ? Image.network(
                             widget.hotel.image,
                             fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => Container(
+                            errorBuilder: (context, error, stackTrace) => Container(
                               color: Colors.grey[900],
                               child: const Icon(
                                 Icons.hotel,
@@ -102,7 +102,7 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
                         : Image.asset(
                             widget.hotel.image,
                             fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => Container(
+                            errorBuilder: (context, error, stackTrace) => Container(
                               color: Colors.grey[900],
                               child: const Icon(
                                 Icons.hotel,
@@ -146,12 +146,28 @@ class _HotelDetailScreenState extends State<HotelDetailScreen> {
                     const SizedBox(height: 20),
                     Row(
                       children: [
-                        const Icon(Icons.star, color: Colors.amber),
-                        const SizedBox(width: 5),
-                        Text(
-                          "${widget.hotel.rating}  (1250 reviews)",
-                          style: const TextStyle(color: Colors.white),
-                        ),
+                        if (widget.hotel.rating > 0 || widget.hotel.starRating > 0) ...[
+                          const Icon(Icons.star, color: Colors.amber),
+                          const SizedBox(width: 5),
+                          Text(
+                            widget.hotel.rating > 0
+                                ? widget.hotel.rating.toStringAsFixed(1)
+                                : '${widget.hotel.starRating}.0',
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                          if (widget.hotel.reviewCount > 0)
+                            Text(
+                              "  (${widget.hotel.reviewCount} reviews)",
+                              style: const TextStyle(color: Colors.white70),
+                            ),
+                        ] else ...[
+                          const Icon(Icons.star_outline, color: Colors.white38),
+                          const SizedBox(width: 5),
+                          const Text(
+                            "Not yet rated",
+                            style: TextStyle(color: Colors.white54),
+                          ),
+                        ],
                       ],
                     ),
                     const SizedBox(height: 25),

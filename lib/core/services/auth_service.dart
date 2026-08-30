@@ -139,6 +139,8 @@ class AuthService {
         final decoded = jsonDecode(userJson);
         if (decoded is Map<String, dynamic>) {
           _currentUser = User.fromJson(decoded);
+          // Re-persist clean normalized user object
+          await prefs.setString(_userKey, jsonEncode(_currentUser!.toJson()));
         }
       } catch (_) {
         _currentUser = null;
@@ -563,25 +565,11 @@ class AuthService {
 
   static User _userFromApi(Map<String, dynamic> data, {String? selectedRole}) {
     final int id = int.tryParse(data["id"]?.toString() ?? "") ?? 0;
-    final String userType = data["user_type"]?.toString() ?? "customer";
+    final String userType = data["user_type"]?.toString() ?? data["role"]?.toString() ?? "customer";
 
-    String appRole;
-    if (selectedRole != null && selectedRole.isNotEmpty) {
-      appRole = selectedRole;
-    } else {
-      switch (userType.toLowerCase()) {
-        case "merchant":
-        case "hotel_admin":
-          appRole = "merchant";
-          break;
-        case "influencer":
-        case "creator":
-          appRole = "creator";
-          break;
-        default:
-          appRole = "consumer";
-      }
-    }
+    final String appRole = (selectedRole != null && selectedRole.isNotEmpty)
+        ? selectedRole
+        : User.normalizeRole(userType);
 
     return User(
       id: id,

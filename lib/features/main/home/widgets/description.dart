@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../../../../data/models/post.dart';
 import 'book_now_button.dart';
 
+import '../../profile/screens/poster_profile_screen.dart';
+
 class Description extends StatelessWidget {
   final Post post;
 
@@ -26,27 +28,37 @@ class Description extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Expanded(
-              child: Row(
-                children: [
-                  Flexible(
-                    child: Text(
-                      post.ownerName,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
+              child: GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => PosterProfileScreen(userId: post.ownerId),
+                    ),
+                  );
+                },
+                child: Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        post.ownerName,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
-                  ),
 
-                  // Verified badge for merchants
-                  if (post.isMerchant)
-                    const Padding(
-                      padding: EdgeInsets.only(left: 5),
-                      child: Icon(Icons.verified, color: Colors.blue, size: 18),
-                    ),
-                ],
+                    // Verified badge for merchants
+                    if (post.isMerchant)
+                      const Padding(
+                        padding: EdgeInsets.only(left: 5),
+                        child: Icon(Icons.verified, color: Colors.blue, size: 18),
+                      ),
+                  ],
+                ),
               ),
             ),
 
