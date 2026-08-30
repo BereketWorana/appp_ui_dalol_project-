@@ -3,11 +3,13 @@ import 'package:video_player/video_player.dart';
 
 class HotelVideoPlayer extends StatefulWidget {
   final String video;
+  final String? thumbnail;
   final bool isActive;
 
   const HotelVideoPlayer({
     super.key,
     required this.video,
+    this.thumbnail,
     required this.isActive,
   });
 
@@ -198,18 +200,57 @@ class HotelVideoPlayerState extends State<HotelVideoPlayer> {
     // ==========================================================
 
     if (videoError) {
-      return Container(
-        color: Colors.black,
-        child: const Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.video_library_outlined, color: Colors.white54, size: 60),
-              SizedBox(height: 10),
-              Text('Video unavailable', style: TextStyle(color: Colors.white54)),
-            ],
+      final thumb = (widget.thumbnail != null && widget.thumbnail!.isNotEmpty)
+          ? widget.thumbnail!
+          : widget.video;
+
+      return Stack(
+        fit: StackFit.expand,
+        children: [
+          if (thumb.startsWith('http'))
+            Image.network(
+              thumb,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => Container(
+                color: Colors.black,
+                child: const Center(
+                  child: Icon(Icons.movie_outlined, color: Colors.white54, size: 60),
+                ),
+              ),
+            )
+          else if (thumb.startsWith('assets/'))
+            Image.asset(
+              thumb,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => Container(
+                color: Colors.black,
+                child: const Center(
+                  child: Icon(Icons.movie_outlined, color: Colors.white54, size: 60),
+                ),
+              ),
+            )
+          else
+            Container(
+              color: Colors.black,
+              child: const Center(
+                child: Icon(Icons.movie_outlined, color: Colors.white54, size: 60),
+              ),
+            ),
+          Center(
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: const BoxDecoration(
+                color: Colors.black45,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.play_arrow_rounded,
+                color: Colors.white,
+                size: 48,
+              ),
+            ),
           ),
-        ),
+        ],
       );
     }
 

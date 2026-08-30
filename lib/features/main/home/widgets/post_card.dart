@@ -105,6 +105,7 @@ class _PostCardState extends State<PostCard> with SingleTickerProviderStateMixin
             HotelVideoPlayer(
               key: videoKey,
               video: widget.post.mediaUrl,
+              thumbnail: widget.post.thumbnail,
               isActive: widget.isActive,
             )
           else
