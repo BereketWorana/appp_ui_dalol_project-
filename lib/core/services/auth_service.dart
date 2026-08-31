@@ -603,4 +603,14 @@ class AuthService {
     }
     return message.toString();
   }
+
+  // ============================================================
+  // UPDATE CURRENT USER SESSION
+  // ============================================================
+
+  static Future<void> updateCurrentUser(User user) async {
+    _currentUser = user;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_userKey, jsonEncode(user.toJson()));
+  }
 }

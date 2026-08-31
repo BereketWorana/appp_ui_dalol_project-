@@ -145,9 +145,13 @@ class _LoginScreenState extends State<LoginScreen> {
   // ============================================================
 
   void socialLogin(String provider) {
-    setState(() {
-      loginError = "$provider login is not implemented yet.";
-    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text("$provider sign-in coming soon!"),
+        backgroundColor: const Color(0xFF323232),
+        duration: const Duration(seconds: 2),
+      ),
+    );
   }
 
   // ============================================================

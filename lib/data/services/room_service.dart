@@ -292,4 +292,50 @@ class RoomService {
 
     return response;
   }
+
+  // ============================================================
+  // TOGGLE ROOM STATUS (ACTIVE / INACTIVE)
+  // ============================================================
+
+  /// Toggles a room's active status flag (on/off).
+  /// POST /api/rooms/{id}/toggle-status (requireAuth: true)
+  /// No body required.
+  ///
+  /// Throws exception on error so calling UI can display real error SnackBar.
+  static Future<Map<String, dynamic>> toggleRoomStatus(int roomId) async {
+    debugPrint('🏨 Toggling active status for room ID: $roomId');
+
+    final response = await ApiService.post(
+      '/rooms/$roomId/toggle-status',
+      requireAuth: true,
+    );
+
+    debugPrint('📥 Response for toggleRoomStatus($roomId): $response');
+
+    if (response['success'] == false) {
+      String errorMessage = response['message']?.toString() ?? 'Failed to toggle room active status';
+      final rawErrors = response['errors'];
+      if (rawErrors is Map && rawErrors.isNotEmpty) {
+        final errList = <String>[];
+        rawErrors.forEach((key, val) {
+          if (val is List) {
+            errList.add('$key: ${val.join(", ")}');
+          } else {
+            errList.add('$key: $val');
+          }
+        });
+        if (errList.isNotEmpty) {
+          errorMessage = errList.join('\n');
+        }
+      }
+      throw Exception(errorMessage);
+    }
+
+    final data = response['data'];
+    if (data is Map<String, dynamic>) {
+      return data;
+    }
+
+    return response;
+  }
 }

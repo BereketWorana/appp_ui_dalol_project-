@@ -504,52 +504,123 @@ class _MyRoomsContentState extends State<MyRoomsContent> {
   }
 
   // ----------------------------------------------------------------
+  // TOGGLE ROOM ACTIVE STATUS
+  // ----------------------------------------------------------------
+  Future<void> _toggleRoomActive(Room room) async {
+    try {
+      final res = await RoomService.toggleRoomStatus(room.id);
+      if (!mounted) return;
+
+      final bool newStatus = !room.isRoomActive;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            res['message']?.toString() ??
+                'Room set to ${newStatus ? "Active" : "Inactive"}',
+          ),
+          backgroundColor: Colors.green,
+        ),
+      );
+      _loadRooms();
+    } catch (e) {
+      if (!mounted) return;
+
+      final msg = e.toString().replaceAll('Exception: ', '');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Failed to toggle active status: ${msg.isNotEmpty ? msg : "Unknown error"}',
+          ),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    }
+  }
+
+  // ----------------------------------------------------------------
   // ROOM CARD
   // ----------------------------------------------------------------
   Widget _buildRoomCard(Room room) {
+    final bool isActive = room.isRoomActive;
     final bool isAvailable = room.isAvailable;
     final Color statusColor = isAvailable ? Colors.green : Colors.orange;
-    final String statusLabel =
-        isAvailable ? 'Available' : 'Fully Booked';
+    final String statusLabel = isAvailable ? 'Available' : 'Fully Booked';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF181818),
+        color: isActive ? const Color(0xFF181818) : const Color(0xFF121212),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white10),
+        border: Border.all(
+          color: isActive ? Colors.white10 : Colors.redAccent.withValues(alpha: 0.2),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Title row + status badge
+          // Title row + status badges + active switch
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Expanded(
                 child: Text(
                   room.name,
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: isActive ? Colors.white : Colors.white60,
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                decoration: BoxDecoration(
-                  color: statusColor.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(12),
+              const SizedBox(width: 8),
+              if (!isActive)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.redAccent.withValues(alpha: 0.18),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.redAccent.withValues(alpha: 0.4)),
+                  ),
+                  child: const Text(
+                    'Inactive',
+                    style: TextStyle(
+                      color: Colors.redAccent,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                )
+              else
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: statusColor.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    statusLabel,
+                    style: TextStyle(
+                      color: statusColor,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
-                child: Text(
-                  statusLabel,
-                  style: TextStyle(
-                    color: statusColor,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
+              const SizedBox(width: 4),
+              SizedBox(
+                height: 24,
+                width: 38,
+                child: FittedBox(
+                  fit: BoxFit.fill,
+                  child: Switch.adaptive(
+                    value: isActive,
+                    activeColor: Colors.pink.shade400,
+                    activeTrackColor: Colors.pink.shade900.withValues(alpha: 0.5),
+                    inactiveThumbColor: Colors.grey,
+                    inactiveTrackColor: Colors.white10,
+                    onChanged: (_) => _toggleRoomActive(room),
                   ),
                 ),
               ),

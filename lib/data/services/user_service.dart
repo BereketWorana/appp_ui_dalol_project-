@@ -120,9 +120,42 @@ class UserService {
   // MERCHANTS
   // ============================================================
 
-  static Future<List<User>> getMerchants() async {
-    final users = await getUsers();
+  // ============================================================
+  // UPDATE USER PROFILE
+  // ============================================================
 
-    return users.where((user) => user.role == "merchant").toList();
+  /// Updates user profile fields via PUT /api/profiles/{userId}.
+  /// Only fields provided in [changes] are sent to the backend.
+  /// Strictly checks both HTTP status code and JSON `success` field.
+  static Future<User> updateUserProfile({
+    required int userId,
+    required Map<String, dynamic> changes,
+  }) async {
+    if (changes.isEmpty) {
+      throw Exception('No fields to update');
+    }
+
+    final response = await ApiService.put(
+      '/profiles/$userId',
+      body: changes,
+      requireAuth: true,
+    );
+
+    // Defensive check: Verify HTTP success status code and body success flag
+    final int? statusCode = response['status_code'] as int?;
+    final bool isHttpOk = (statusCode == null || (statusCode >= 200 && statusCode < 300));
+    final bool isSuccess = response['success'] == true;
+
+    if (!isHttpOk || !isSuccess) {
+      final msg = response['message']?.toString() ?? 'Failed to update profile';
+      throw Exception(msg);
+    }
+
+    final data = response['data'];
+    if (data is Map<String, dynamic>) {
+      return User.fromJson(data);
+    }
+
+    throw Exception('Invalid profile update response from server');
   }
 }

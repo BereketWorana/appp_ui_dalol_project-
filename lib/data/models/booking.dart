@@ -106,12 +106,62 @@ class Booking {
   }
 
   // ============================================================
-  // CONVENIENCE GETTERS
+  // CONVENIENCE GETTERS & COPYWITH
   // ============================================================
 
-  bool get isPending => status == 'pending';
-  bool get isConfirmed => status == 'confirmed';
-  bool get isCancelled => status == 'cancelled';
-  bool get isCompleted => status == 'completed';
-  bool get isPaid => paymentStatus == 'paid';
+  bool get isPending => status.toLowerCase() == 'pending';
+  bool get isConfirmed => status.toLowerCase() == 'confirmed';
+  bool get isCancelled => status.toLowerCase() == 'cancelled';
+  bool get isCompleted => status.toLowerCase() == 'completed';
+  bool get isPaid => paymentStatus.toLowerCase() == 'paid';
+
+  Booking copyWith({
+    int? id,
+    String? bookingReference,
+    int? userId,
+    int? hotelId,
+    int? roomId,
+    DateTime? checkInDate,
+    DateTime? checkOutDate,
+    int? nights,
+    int? adults,
+    int? children,
+    int? roomsCount,
+    double? totalPrice,
+    String? status,
+    String? paymentStatus,
+    String? guestName,
+    String? guestEmail,
+    String? guestPhone,
+    String? specialRequests,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    Map<String, dynamic>? room,
+    Map<String, dynamic>? hotel,
+  }) {
+    return Booking(
+      id: id ?? this.id,
+      bookingReference: bookingReference ?? this.bookingReference,
+      userId: userId ?? this.userId,
+      hotelId: hotelId ?? this.hotelId,
+      roomId: roomId ?? this.roomId,
+      checkInDate: checkInDate ?? this.checkInDate,
+      checkOutDate: checkOutDate ?? this.checkOutDate,
+      nights: nights ?? this.nights,
+      adults: adults ?? this.adults,
+      children: children ?? this.children,
+      roomsCount: roomsCount ?? this.roomsCount,
+      totalPrice: totalPrice ?? this.totalPrice,
+      status: status ?? this.status,
+      paymentStatus: paymentStatus ?? this.paymentStatus,
+      guestName: guestName ?? this.guestName,
+      guestEmail: guestEmail ?? this.guestEmail,
+      guestPhone: guestPhone ?? this.guestPhone,
+      specialRequests: specialRequests ?? this.specialRequests,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      room: room ?? this.room,
+      hotel: hotel ?? this.hotel,
+    );
+  }
 }

@@ -221,6 +221,11 @@ class Room {
   // BACKWARD COMPATIBLE GETTERS
   // ============================================================
 
+  bool get isRoomActive {
+    final val = isActive.trim().toLowerCase();
+    return val == 't' || val == '1' || val == 'true' || val == 'active';
+  }
+
   String get roomType => bedType.isNotEmpty ? bedType : name;
   int get capacity => maxOccupancy;
   List<String> get facilities => amenities;
